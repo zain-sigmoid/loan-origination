@@ -10,3 +10,4 @@ langchain-experimental
 tabulate
 pyppeteer
 termcolor
+matplotlib
