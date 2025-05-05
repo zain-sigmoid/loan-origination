@@ -8,11 +8,13 @@ from termcolor import colored
 import re
 import uuid
 import yaml
+from dotenv import load_dotenv
 import warnings
 
 warnings.filterwarnings("ignore")
-
-os.environ["GOOGLE_API_KEY"] = "AIzaSyBvLlmbI2JKcWvTLmJCIZ-c0DwBs5q7-mc"
+load_dotenv()
+os.environ["GOOGLE_API_KEY"] = os.getenv("LLM_API_KEY")
+print(os.getenv("LLM_API_KEY"))
 
 ## LangChain related imports
 from langgraph.graph import StateGraph, END

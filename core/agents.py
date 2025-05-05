@@ -9,11 +9,15 @@ import re
 import uuid
 import yaml
 import warnings
+from dotenv import load_dotenv
 
 warnings.filterwarnings("ignore")
 from .utils import Utility, Helper, Tools
 
-os.environ["GOOGLE_API_KEY"] = "AIzaSyBvLlmbI2JKcWvTLmJCIZ-c0DwBs5q7-mc"
+load_dotenv()
+
+
+os.environ["GOOGLE_API_KEY"] = os.getenv("LLM_API_KEY")
 
 ## LangChain related imports
 from langgraph.graph import StateGraph, END
