@@ -11,3 +11,4 @@ tabulate
 pyppeteer
 termcolor
 matplotlib
+seaborn
