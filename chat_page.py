@@ -1,8 +1,6 @@
 import streamlit as st
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage
 from datetime import datetime
-import json
-import os
 from PIL import Image
 from core.graph import Graph
 import pandas as pd
@@ -64,7 +62,7 @@ def show_agentic_chat_interface():
                 toggle_key = f"show_chart_{chart_key}"
                 show_chart = st.toggle("📊 Show Chart", key=toggle_key)
                 if show_chart:
-                    img = Image.open(chart_path).resize((512, 512))
+                    img = Image.open(chart_path)
                     st.image(img, caption="Generated Chart", use_container_width=False)
 
             if (
@@ -89,7 +87,7 @@ def show_agentic_chat_interface():
     prompt = st.chat_input("Ask your question...")
 
     if prompt:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now().strftime("%H:%M:%S")
         user_html = format_user_bubble(prompt, timestamp)
         st.session_state.chat_log.append({"html": user_html})
         st.markdown(user_html, unsafe_allow_html=True)
@@ -119,7 +117,7 @@ def show_agentic_chat_interface():
 
                     assistant_html = format_assistant_bubble(
                         answer,
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        datetime.now().strftime("%H:%M:%S"),
                         chart_key,
                     )
 

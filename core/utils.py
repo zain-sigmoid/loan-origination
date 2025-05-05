@@ -2,9 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-from IPython.display import display, Markdown, Image
-from typing import TypedDict, Optional
-from termcolor import colored
+from IPython.display import display, Image
 import re
 import uuid
 import yaml
@@ -14,26 +12,10 @@ import warnings
 warnings.filterwarnings("ignore")
 load_dotenv()
 os.environ["GOOGLE_API_KEY"] = os.getenv("LLM_API_KEY")
-print(os.getenv("LLM_API_KEY"))
 
 ## LangChain related imports
-from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
-from langchain_core.messages import (
-    AnyMessage,
-    SystemMessage,
-    HumanMessage,
-    ToolMessage,
-    AIMessage,
-)
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.schema import HumanMessage
-from langchain_core.tools import tool
-from langchain_experimental.agents import create_pandas_dataframe_agent
-from langchain.agents import initialize_agent, Tool
-from langchain.agents.agent_types import AgentType
 from langgraph.checkpoint.memory import MemorySaver
 
 memory = MemorySaver()

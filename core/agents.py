@@ -2,17 +2,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-from IPython.display import display, Markdown, Image
-from typing import TypedDict, Optional
-from termcolor import colored
 import re
-import uuid
-import yaml
 import warnings
 from dotenv import load_dotenv
 
 warnings.filterwarnings("ignore")
-from .utils import Utility, Helper, Tools
+from .utils import Utility
 
 load_dotenv()
 
@@ -69,7 +64,7 @@ class Supervisor:
         among applicants.""",
             },
             {
-                "agent_name": "General Scenario Agent",
+                "agent_name": "Scenario Simulation Agent",
                 "description": """Generate Scenario Agent is responsible for creating and analyzing "what-if" scenarios based on user-defined parameters. This agent helps compare the outcomes of various decisions or actions, such 
         as the impact of increasing truck capacity, changing shipment consolidation strategies, or exploring 
         different operational scenarios. It can model changes in the system and assess the consequences of 
@@ -194,7 +189,6 @@ class BI_Agent:
             str or dict: Output from helper function (e.g., executed analysis).
         """
         llm_response = self.run(question)
-        print("llm response", llm_response)
         if "execute_analysis" in self.helper_functions:
             return self.helper_functions["execute_analysis"](
                 df=self.dataset, response_text=llm_response.content
@@ -206,6 +200,148 @@ class BI_Agent:
         """
         String representation of the agent.
         """
+        return (
+            f"Agent(name={self.agent_name}, "
+            f"tools={[tool.name for tool in self.tools]}, "
+            f"dataset_shape={self.dataset.shape})"
+        )
+
+
+class FairLendingAgent:
+    def __init__(self, llm, dataset, data_description, helper_functions=None):
+        prompt_s = Utility.load_prompts()
+        self.llm = llm
+        self.agent_name = "Fair Lending Compliance Agent"
+        self.dataset = dataset
+        # self.tools = tools
+        self.data_description = data_description
+        self.helper_functions = helper_functions or {}
+        self.prompt = prompt_s["prompts"]["Fair_Lending_Compliance_Agent"]
+
+    def add_helper_function(self, name, func):
+        self.helper_functions[name] = func
+
+    def run(self, question):
+        prompt_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.prompt.strip()),
+                MessagesPlaceholder(variable_name="messages"),
+            ]
+        )
+        return self.llm.invoke(
+            prompt_template.invoke(
+                {
+                    "data_description": self.data_description,
+                    "question": question,
+                    "messages": [HumanMessage(content=question)],
+                }
+            )
+        )
+
+    def generate_response(self, question):
+        result = self.run(question)
+        if "execute_analysis" in self.helper_functions:
+            return self.helper_functions["execute_analysis"](
+                df=self.dataset, response_text=result.content
+            )
+        else:
+            return result.content
+
+    def __repr__(self):
+        return (
+            f"Agent(name={self.agent_name}, "
+            f"tools={[tool.name for tool in self.tools]}, "
+            f"dataset_shape={self.dataset.shape})"
+        )
+
+
+class RiskEvaluationAgent:
+    def __init__(self, llm, dataset, data_description, helper_functions=None):
+        prompt_s = Utility.load_prompts()
+        self.llm = llm
+        self.agent_name = "Risk and Cost Evaluation Agent"
+        self.dataset = dataset
+        self.prompt = prompt_s["prompts"]["Risk_Evaluation_Agent"]
+        self.helper_functions = helper_functions or {}
+        self.data_description = data_description
+
+    def add_helper_function(self, name, func):
+        self.helper_functions[name] = func
+
+    def run(self, question):
+        prompt_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.prompt.strip()),
+                MessagesPlaceholder(variable_name="messages"),
+            ]
+        )
+        return self.llm.invoke(
+            prompt_template.invoke(
+                {
+                    "data_description": self.data_description,
+                    "question": question,
+                    "messages": [HumanMessage(content=question)],
+                }
+            )
+        )
+
+    def generate_response(self, question):
+        result = self.run(question)
+        if "execute_analysis" in self.helper_functions:
+            return self.helper_functions["execute_analysis"](
+                df=self.dataset, response_text=result.content
+            )
+        else:
+            return result.content
+
+    def __repr__(self):
+        return (
+            f"Agent(name={self.agent_name}, "
+            f"tools={[tool.name for tool in self.tools]}, "
+            f"dataset_shape={self.dataset.shape})"
+        )
+
+
+class ScenarioSimulationAgent:
+    def __init__(self, llm, dataset, data_description, helper_functions=None):
+        prompt_s = Utility.load_prompts()
+        self.llm = llm
+        self.agent_name = "Scenario Simulation Agent"
+        self.dataset = dataset
+        self.prompt = prompt_s["prompts"]["General_Scenario_Agent"]
+        self.data_description = data_description
+        self.helper_functions = helper_functions or {}
+
+    def add_helper_function(self, name, func):
+        self.helper_functions[name] = func
+
+    def run(self, question):
+        prompt_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.prompt.strip()),
+                MessagesPlaceholder(variable_name="messages"),
+            ]
+        )
+        return self.llm.invoke(
+            prompt_template.invoke(
+                {
+                    "data_description": self.data_description,
+                    "question": question,
+                    "messages": [HumanMessage(content=question)],
+                }
+            )
+        )
+
+    def generate_response(self, question):
+        result = self.run(question)
+        if "execute_analysis" in self.helper_functions:
+            return self.helper_functions["execute_analysis"](
+                df=self.dataset, response_text=result.content
+            )
+        else:
+            return result.content
+
+    def __repr__(self):
         return (
             f"Agent(name={self.agent_name}, "
             f"tools={[tool.name for tool in self.tools]}, "
