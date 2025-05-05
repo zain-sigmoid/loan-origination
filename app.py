@@ -1,0 +1,121 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+from chat_page import show_agentic_chat_interface
+from core.data_loader import Data
+
+if "data" not in st.session_state:
+    with st.spinner("🔄 Loading data..."):
+        st.session_state.data = Data()
+        st.success("✅ Data loaded successfully")
+        st.rerun()
+
+# Set page configuration
+st.set_page_config(
+    page_title="Lending Risk Analysis & Approval Prediction",
+    page_icon="🏦",
+    layout="wide",
+)
+
+# Initialize session state
+if "show_chat" not in st.session_state:
+    st.session_state.show_chat = False
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+
+def show_intro_page():
+    # Intro Page Styles
+    st.markdown(
+        """
+        <style>
+        .main {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .stButton>button {
+            width: 200px;
+            margin: 2rem auto;
+            display: block;
+        }
+        .title-text {
+            text-align: center;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .subtitle-text {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            color: #666;
+        }
+        .section {
+            margin: 2rem 0;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+        }
+        </style>
+    """,
+        unsafe_allow_html=True,
+    )
+
+    # Title and subtitle
+    st.markdown(
+        '<h1 class="title-text">🏦 Lending Risk Analysis & Approval Prediction</h1>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<h2 class="subtitle-text">Data-Driven Credit Decisioning System</h2>',
+        unsafe_allow_html=True,
+    )
+
+    # Project Description
+    st.markdown('<div class="section">', unsafe_allow_html=True)
+    st.markdown(
+        """
+    This project streamlines the loan origination process using data science. It leverages real-world datasets with over 50 features 
+    to help underwriters predict loan approval outcomes and assess borrower risk more fairly and efficiently.
+    """
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Objectives
+    st.markdown('<div class="section">', unsafe_allow_html=True)
+    st.markdown("### 🔍 Project Objectives")
+    st.markdown(
+        """
+    - Predict loan approval based on applicant profile.
+    - Assess borrower risk levels and eligibility.
+    - Examine fairness across demographic groups.
+    - Generate interpretable, actionable insights.
+    """
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Dataset Highlights
+    st.markdown('<div class="section">', unsafe_allow_html=True)
+    st.markdown("### 🧩 Dataset Highlights")
+    st.markdown(
+        """
+    - Loan, applicant, and property details.
+    - Credit score, DTI, income, race, sex, and AUS results.
+    - Census-level housing and demographic indicators.
+    """
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Try Model Button
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🚀 Try the Model", use_container_width=True):
+            st.session_state.show_chat = "agentic"
+            st.rerun()
+
+
+# MAIN ROUTER
+if st.session_state.show_chat == "agentic":
+    show_agentic_chat_interface()
+else:
+    show_intro_page()
