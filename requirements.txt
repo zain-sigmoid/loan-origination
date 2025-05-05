@@ -12,3 +12,5 @@ pyppeteer
 termcolor
 matplotlib
 seaborn
+pillow
+ipython
