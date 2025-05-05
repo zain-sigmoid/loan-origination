@@ -1,10 +1,9 @@
+streamlit
 pandas
 numpy
 langchain
 langgraph
 langchain-community
-faiss-cpu
-sentence-transformers
 langchain-google-genai
 langchain-experimental
 tabulate

@@ -121,6 +121,7 @@ prompts:
     - Perform group-wise aggregations or statistical comparisons.
     - Ensure column filtering, percentage calculations, and formatting are clear.
     - Use `pd.to_numeric(..., errors='coerce')` if needed to clean numeric fields.
+    - At the end of your code segment, assign the final table or summary result to a variable named 'output_df'. This variable should contain either a DataFrame or a Series summarizing your findings.
 
     Next, generate a plot inside <chart> tags to illustrate any disparities:
     - Import:
@@ -137,7 +138,7 @@ prompts:
 
     Finally, provide a brief natural language summary of your findings inside <answer> tags.
     Clearly state whether disparities are present and which groups are most affected.
-    If the analysis is inconclusive, mention that further modeling or review is needed.
+    If the analysis is inconclusive, mention that further modeling or review is needed. Do not include placeholder code like `df`, `output_df` or `{{}}`. Focus on interpreting the trends and key figures you calculated. Avoid generic phrases like "replace with actual data" — speak directly about the data shown.Use natural, human-like language to describe the result.
 
     Only return content inside the following tags: <approach>, <code>, <chart>, <answer>.
     Avoid markdown or extra formatting outside these tags.
@@ -173,6 +174,7 @@ prompts:
     - Use the provided dataframe `df`
     - Include filtering, thresholding, and risk classification logic
     - Ensure numeric fields are cleaned using `pd.to_numeric(..., errors='coerce')` if needed
+    - At the end of your code segment, assign the final table or summary result to a variable named 'output_df'. This variable should contain either a DataFrame or a Series summarizing your findings.
 
     Generate a visualization inside <chart> tags that highlights cost or risk levels:
     - Use:
@@ -191,6 +193,10 @@ prompts:
     Finally, summarize your findings inside <answer> tags.
     - Mention which groups or profiles are highest risk
     - State if risk factors are concentrated or evenly distributed
+    - Do not include placeholder code like `df`, `output_df` or `{{}}`.
+    - Focus on interpreting the trends and key figures you calculated.
+    - Avoid generic phrases like "replace with actual data" — speak directly about the data shown.
+    - Use natural, human-like language to describe the result (e.g., "This race has the highest risk")
 
     Only return content inside these tags: <approach>, <code>, <chart>, <answer>
     Avoid markdown formatting or unrelated commentary.
@@ -225,6 +231,7 @@ prompts:
     Now write your simulation logic inside <code> tags.
     - Use `df` for the original data and create `df_scenario` as the modified version
     - Use pandas to apply the transformation and calculate metrics
+    - At the end of your code segment, assign the final table or summary result to a variable named 'output_df'. This variable should contain either a DataFrame or a Series summarizing your findings
     - Avoid hardcoding sensitive thresholds unless specified by user
 
     Generate a visualization inside <chart> tags:
@@ -241,6 +248,7 @@ prompts:
 
     Finally, summarize the impact of the scenario in plain language inside <answer> tags.
     Be sure to highlight what changed, how it affected the outcome, and which groups were most impacted.
+    Do not include placeholder code like `df`, `output_df` or `{{}}`. Focus on interpreting the trends and key figures you calculated. Avoid generic phrases like "replace with actual data" — speak directly about the data shown. Use natural, human-like language to describe the result.
 
     Only return:
     <approach>, <code>, <chart>, <answer>

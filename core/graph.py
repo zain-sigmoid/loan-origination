@@ -1,25 +1,28 @@
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.message import add_messages
-from uuid import uuid4
-import pandas as pd
 import streamlit as st
-import json
 from typing import TypedDict, Optional
 from PIL import Image
 from io import BytesIO
 from termcolor import colored
-from .agents import Supervisor, BI_Agent
+from .agents import (
+    Supervisor,
+    BI_Agent,
+    FairLendingAgent,
+    RiskEvaluationAgent,
+    ScenarioSimulationAgent,
+)
 from .utils import Utility, Helper, Tools
 import functools
 from typing import TypedDict, Annotated, List
 from langchain_core.messages import (
     AnyMessage,
-    SystemMessage,
     HumanMessage,
-    ToolMessage,
     AIMessage,
 )
+
+tool = Tools()
 
 
 class AgentState(TypedDict):
@@ -73,7 +76,6 @@ class Graph:
         }
 
     def bi_agent(self, state: AgentState):
-        tool = Tools()
         BIAgent = BI_Agent(
             llm=Utility.llm(),
             # prompt=bi_agent_prompt,
@@ -90,12 +92,37 @@ class Graph:
             ),
             "",
         )
-        print("calling biagent.generate response")
         response = BIAgent.generate_response(question)
-        print(response.get("figure", "no fig"))
 
         if response.get("figure"):
             print("got some figure here", response["figure"])
+            # Helper.display_saved_plot(response["figure"])
+
+        message = (
+            response["approach"]
+            + "\n\nSolution we got from this approach is:\n"
+            + response["answer"]
+        )
+        return response, [HumanMessage(content=message)]
+
+    def fair_agent(self, state: AgentState):
+        fair_agent = FairLendingAgent(
+            llm=Utility.llm(),
+            data_description=self.data_description,
+            dataset=self.data,
+            helper_functions={"execute_analysis": tool.execute_analysis},
+        )
+        question = next(
+            (
+                m.content
+                for m in reversed(state["messages"])
+                if isinstance(m, HumanMessage)
+            ),
+            "",
+        )
+        response = fair_agent.generate_response(question)
+
+        if response.get("figure"):
             Helper.display_saved_plot(response["figure"])
 
         message = (
@@ -105,77 +132,59 @@ class Graph:
         )
         return response, [HumanMessage(content=message)]
 
-    # def fair_agent(state:AgentState):
-    #     fair_agent = FairLendingAgent(
-    #         llm=llm,
-    #         prompt=bi_agent_prompt,
-    #         data_description=feat,
-    #         dataset=data,
-    #         helper_functions=helper_functions,
-    #     )
-    #     question = next(
-    #         (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
-    #         "",
-    #     )
-    #     response = fair_agent.generate_response(question)
+    def risk_agent(self, state: AgentState):
+        risk_agent = RiskEvaluationAgent(
+            llm=Utility.llm(),
+            data_description=self.data_description,
+            dataset=self.data,
+            helper_functions={"execute_analysis": tool.execute_analysis},
+        )
+        question = next(
+            (
+                m.content
+                for m in reversed(state["messages"])
+                if isinstance(m, HumanMessage)
+            ),
+            "",
+        )
+        response = risk_agent.generate_response(question)
 
-    #     if response.get("figure"):
-    #         display_saved_plot(response["figure"])
+        if response.get("figure"):
+            Helper.display_saved_plot(response["figure"])
 
-    #     message = (
-    #         response["approach"]
-    #         + "\n\nSolution we got from this approach is:\n"
-    #         + response["answer"]
-    #     )
-    #     return [HumanMessage(content=message)]
+        message = (
+            response["approach"]
+            + "\n\nSolution we got from this approach is:\n"
+            + response["answer"]
+        )
+        return response, [HumanMessage(content=message)]
 
-    # def risk_agent(state:AgentState):
-    #     risk_agent = RiskEvaluationAgent(
-    #         llm=llm,
-    #         prompt=bi_agent_prompt,
-    #         data_description=feat,
-    #         dataset=data,
-    #         helper_functions=helper_functions,
-    #     )
-    #     question = next(
-    #         (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
-    #         "",
-    #     )
-    #     response = risk_agent.generate_response(question)
+    def general_agent(self, state: AgentState):
+        gen_agent = ScenarioSimulationAgent(
+            llm=Utility.llm(),
+            data_description=self.data_description,
+            dataset=self.data,
+            helper_functions={"execute_analysis": tool.execute_analysis},
+        )
+        question = next(
+            (
+                m.content
+                for m in reversed(state["messages"])
+                if isinstance(m, HumanMessage)
+            ),
+            "",
+        )
+        response = gen_agent.generate_response(question)
 
-    #     if response.get("figure"):
-    #         display_saved_plot(response["figure"])
+        if response.get("figure"):
+            Helper.display_saved_plot(response["figure"])
 
-    #     message = (
-    #         response["approach"]
-    #         + "\n\nSolution we got from this approach is:\n"
-    #         + response["answer"]
-    #     )
-    #     return [HumanMessage(content=message)]
-
-    # def general_agent(state:AgentState):
-    #     gen_agent = ScenarioSimulationAgent(
-    #         llm=llm,
-    #         prompt=bi_agent_prompt,
-    #         data_description=feat,
-    #         dataset=data,
-    #         helper_functions=helper_functions,
-    #     )
-    #     question = next(
-    #         (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
-    #         "",
-    #     )
-    #     response = gen_agent.generate_response(question)
-
-    #     if response.get("figure"):
-    #         display_saved_plot(response["figure"])
-
-    #     message = (
-    #         response["approach"]
-    #         + "\n\nSolution we got from this approach is:\n"
-    #         + response["answer"]
-    #     )
-    #     return [HumanMessage(content=message)]
+        message = (
+            response["approach"]
+            + "\n\nSolution we got from this approach is:\n"
+            + response["answer"]
+        )
+        return response, [HumanMessage(content=message)]
 
     def finish(self, state: AgentState):
         print("✅ Conversation complete.")
@@ -188,15 +197,34 @@ class Graph:
         bi_agent_node = functools.partial(
             self.agent_node, agent_func=self.bi_agent, name="BI Agent"
         )
+        fair_lending_agent_node = functools.partial(
+            self.agent_node,
+            agent_func=self.fair_agent,
+            name="Fair Lending Compliance Agent",
+        )
+        risk_eval_agent_node = functools.partial(
+            self.agent_node, agent_func=self.risk_agent, name="Risk Evaluation Agent"
+        )
+        scenario_agent_node = functools.partial(
+            self.agent_node,
+            agent_func=self.general_agent,
+            name="Scenario Simulation Agent",
+        )
 
         graph = StateGraph(AgentState)
 
         # Register nodes
         graph.add_node("supervisor", self.supervisor_node)
         graph.add_node("BI Agent", bi_agent_node)
+        graph.add_node("Fair Lending Compliance Agent", fair_lending_agent_node)
+        graph.add_node("Risk Evaluation Agent", risk_eval_agent_node)
+        graph.add_node("Scenario Simulation Agent", scenario_agent_node)
         graph.add_node("FINISH", self.finish)
 
         graph.add_edge("BI Agent", "supervisor")
+        graph.add_edge("Fair Lending Compliance Agent", "supervisor")
+        graph.add_edge("Risk Evaluation Agent", "supervisor")
+        graph.add_edge("Scenario Simulation Agent", "supervisor")
 
         graph.set_entry_point("supervisor")
         graph.add_conditional_edges(
@@ -204,6 +232,9 @@ class Graph:
             lambda state: state["next"],
             {
                 "BI Agent": "BI Agent",
+                "Fair Lending Compliance Agent": "Fair Lending Compliance Agent",
+                "Risk Evaluation Agent": "Risk Evaluation Agent",
+                "Scenario Simulation Agent": "Scenario Simulation Agent",
                 "FINISH": "FINISH",
             },
         )

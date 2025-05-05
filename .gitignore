@@ -1,3 +1,7 @@
 # Environment files
 .env
+<<<<<<< HEAD
 plots/
+=======
+plots/
+>>>>>>> staging
