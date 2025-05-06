@@ -170,8 +170,16 @@ class Tools:
             return results
 
         except Exception as e:
-            print(f"[Execution Error] {e}")
-            return results
+            error_msg = f"[Agent Execution Error] {str(e)}"
+            print(error_msg)
+            return {
+                "approach": "Error occurred during analysis.",
+                "answer": error_msg,
+                "figure": None,
+                "code": None,
+                "chart_code": None,
+                "error": True,
+            }
 
     # Helper to clean indentation
     def _dedent_code(self, code_str):

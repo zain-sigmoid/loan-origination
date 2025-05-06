@@ -1,14 +1,12 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import os
+import base64
 from chat_page import show_agentic_chat_interface
+from static.intro_page import show_intro_page
 from core.data_loader import Data
 
-if "data" not in st.session_state:
-    with st.spinner("🔄 Loading data..."):
-        st.session_state.data = Data()
-        st.success("✅ Data loaded successfully")
-        st.rerun()
 
 # Set page configuration
 st.set_page_config(
@@ -17,105 +15,99 @@ st.set_page_config(
     layout="wide",
 )
 
+
+def get_logo_base64():
+    logo_path = os.path.join(os.path.dirname(__file__), "./static/logo.png")
+    with open(logo_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode()
+
+
+def top_navbar(data_loaded=False):
+    encoded_logo = get_logo_base64()
+    data_loaded = st.session_state.get("data_loaded", False)
+    status = "✅ Data Loaded" if data_loaded else "⏳ Loading Data..."
+
+    # Style and layout
+    st.markdown(
+        f"""
+        <style>
+        .top-navbar {{
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 20px;
+            height: 50px;
+            border-bottom: 1px solid #eee;
+        }}
+        .nav-left img {{
+            height: 30px;
+            vertical-align: middle;
+        }}
+        .nav-right {{
+            display: flex;
+            align-items: center;
+        }}
+        .status-button {{
+            padding: 5px 12px;
+            background-color: gray;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: default;
+        }}
+        </style>
+
+        <div class="top-navbar">
+            <div class="nav-left">
+                <img src="data:image/png;base64,{encoded_logo}" alt="Logo">
+            </div>
+            <div class="nav-right">
+                <button class="status-button" disabled>{status}</button>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 # Initialize session state
 if "show_chat" not in st.session_state:
-    st.session_state.show_chat = False
+    st.session_state.show_chat = "intro"
+if "data_loaded" not in st.session_state:
+    st.session_state.data_loaded = False
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+top_navbar(st.session_state.data_loaded)
 
-def show_intro_page():
-    # Intro Page Styles
-    st.markdown(
-        """
-        <style>
-        .main {
-            padding: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .stButton>button {
-            width: 200px;
-            margin: 2rem auto;
-            display: block;
-        }
-        .title-text {
-            text-align: center;
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-        .subtitle-text {
-            text-align: center;
-            font-size: 1.5rem;
-            margin-bottom: 2rem;
-            color: #666;
-        }
-        .section {
-            margin: 2rem 0;
-            padding: 1rem;
-            background-color: #f8f9fa;
-            border-radius: 10px;
-        }
-        </style>
-    """,
-        unsafe_allow_html=True,
-    )
+if st.session_state.show_chat == "intro":
+    show_intro_page()
+else:
+    try:
+        show_agentic_chat_interface()
+    except Exception as e:
+        st.error("⚠️ An unexpected error occurred. Please try again.")
+        st.expander("Error Details").markdown(f"```{str(e)}```")
 
-    # Title and subtitle
-    st.markdown(
-        '<h1 class="title-text">🏦 Lending Risk Analysis & Approval Prediction</h1>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        '<h2 class="subtitle-text">Data-Driven Credit Decisioning System</h2>',
-        unsafe_allow_html=True,
-    )
-
-    # Project Description
-    st.markdown('<div class="section">', unsafe_allow_html=True)
-    st.markdown(
-        """
-    This project streamlines the loan origination process using data science. It leverages real-world datasets with over 50 features 
-    to help underwriters predict loan approval outcomes and assess borrower risk more fairly and efficiently.
-    """
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Objectives
-    st.markdown('<div class="section">', unsafe_allow_html=True)
-    st.markdown("### 🔍 Project Objectives")
-    st.markdown(
-        """
-    - Predict loan approval based on applicant profile.
-    - Assess borrower risk levels and eligibility.
-    - Examine fairness across demographic groups.
-    - Generate interpretable, actionable insights.
-    """
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Dataset Highlights
-    st.markdown('<div class="section">', unsafe_allow_html=True)
-    st.markdown("### 🧩 Dataset Highlights")
-    st.markdown(
-        """
-    - Loan, applicant, and property details.
-    - Credit score, DTI, income, race, sex, and AUS results.
-    - Census-level housing and demographic indicators.
-    """
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Try Model Button
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("🚀 Try the Model", use_container_width=True):
-            st.session_state.show_chat = "agentic"
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    if not st.session_state.data_loaded:
+        with st.spinner("🔄 Loading data in background..."):
+            st.session_state.data = Data()
+            st.session_state.data_loaded = True
             st.rerun()
 
+# ✅ Handle Try Now button
+if st.session_state.get("try_now") and st.session_state.data_loaded:
+    st.session_state.show_chat = "agentic"
+    st.rerun()
 
-# MAIN ROUTER
-if st.session_state.show_chat == "agentic":
-    show_agentic_chat_interface()
-else:
-    show_intro_page()
+if st.session_state.get("back"):
+    st.session_state.show_chat = "intro"
+    st.rerun()

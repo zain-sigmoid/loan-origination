@@ -2,6 +2,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.message import add_messages
 import streamlit as st
+import pandas as pd
 from typing import TypedDict, Optional
 from PIL import Image
 from io import BytesIO
@@ -13,6 +14,7 @@ from .agents import (
     RiskEvaluationAgent,
     ScenarioSimulationAgent,
 )
+from langgraph.checkpoint.memory import MemorySaver
 from .utils import Utility, Helper, Tools
 import functools
 from typing import TypedDict, Annotated, List
@@ -23,6 +25,7 @@ from langchain_core.messages import (
 )
 
 tool = Tools()
+memory = MemorySaver()
 
 
 class AgentState(TypedDict):
@@ -30,6 +33,7 @@ class AgentState(TypedDict):
     next: str
     hop_count: Optional[int]
     agent_response: dict
+    thread_id: str
 
 
 class Graph:
@@ -42,7 +46,7 @@ class Graph:
         state["hop_count"] = hop_count
         agent_res = state.get("agent_response", "")
         # print(hop_count)
-        if hop_count >= 3:
+        if hop_count >= 4:
             return {
                 "messages": state["messages"]
                 + [
@@ -53,10 +57,24 @@ class Graph:
                 "next": "FINISH",
                 "hop_count": hop_count,
                 "agent_res": agent_res,
+                "thread_id": state["thread_id"],
             }
         supervisor_chain = Supervisor.chain()
         result = supervisor_chain.invoke({"messages": state["messages"]})
         agent_name = result["next"]
+        last_message = state["messages"][-1].content.lower()
+
+        if "[error]" in last_message:
+            return {
+                "messages": state["messages"]
+                + [
+                    AIMessage(
+                        content="There was an error in the agent's analysis. Please rephrase your question or try again."
+                    )
+                ],
+                "next": "FINISH",
+                "hop_count": state.get("hop_count", 0),
+            }
 
         print(colored(f"\n🧭 Supervisor routed to: {agent_name}", "yellow"))
         return {
@@ -65,6 +83,7 @@ class Graph:
             "next": agent_name,
             "hop_count": hop_count,
             "agent_res": agent_res,
+            "thread_id": state["thread_id"],
         }
 
     def agent_node(self, state: AgentState, agent_func, name: str):
@@ -73,6 +92,7 @@ class Graph:
             "messages": state["messages"] + message,
             "next": "supervisor",
             "agent_response": response,
+            "thread_id": state["thread_id"],
         }
 
     def bi_agent(self, state: AgentState):
@@ -92,11 +112,20 @@ class Graph:
             ),
             "",
         )
-        response = BIAgent.generate_response(question)
+        history = state["messages"]
+        response = BIAgent.generate_response(question, history=history)
 
         if response.get("figure"):
             print("got some figure here", response["figure"])
+
+        if response.get("error"):
+            return response, [
+                AIMessage(content="[ERROR] BI Agent failed with: " + response["answer"])
+            ]
+
             # Helper.display_saved_plot(response["figure"])
+        if "table" in response and isinstance(response["table"], pd.DataFrame):
+            response["table"] = response["table"].to_dict()
 
         message = (
             response["approach"]
@@ -120,10 +149,20 @@ class Graph:
             ),
             "",
         )
-        response = fair_agent.generate_response(question)
+        history = state["messages"]
+        response = fair_agent.generate_response(question, history=history)
 
         if response.get("figure"):
             Helper.display_saved_plot(response["figure"])
+
+        if response.get("error"):
+            return response, [
+                AIMessage(content="[ERROR] BI Agent failed with: " + response["answer"])
+            ]
+
+            # Helper.display_saved_plot(response["figure"])
+        if "table" in response and isinstance(response["table"], pd.DataFrame):
+            response["table"] = response["table"].to_dict()
 
         message = (
             response["approach"]
@@ -147,7 +186,17 @@ class Graph:
             ),
             "",
         )
-        response = risk_agent.generate_response(question)
+        history = state["messages"]
+        response = risk_agent.generate_response(question, history=history)
+
+        if response.get("error"):
+            return response, [
+                AIMessage(content="[ERROR] BI Agent failed with: " + response["answer"])
+            ]
+
+            # Helper.display_saved_plot(response["figure"])
+        if "table" in response and isinstance(response["table"], pd.DataFrame):
+            response["table"] = response["table"].to_dict()
 
         if response.get("figure"):
             Helper.display_saved_plot(response["figure"])
@@ -174,10 +223,20 @@ class Graph:
             ),
             "",
         )
-        response = gen_agent.generate_response(question)
+        history = state["messages"]
+        response = gen_agent.generate_response(question, history=history)
 
         if response.get("figure"):
             Helper.display_saved_plot(response["figure"])
+
+        if response.get("error"):
+            return response, [
+                AIMessage(content="[ERROR] BI Agent failed with: " + response["answer"])
+            ]
+
+            # Helper.display_saved_plot(response["figure"])
+        if "table" in response and isinstance(response["table"], pd.DataFrame):
+            response["table"] = response["table"].to_dict()
 
         message = (
             response["approach"]
@@ -249,7 +308,7 @@ class Graph:
 
         # Build and compile the graph
         graph = self.build()
-        app = graph.compile()
+        app = graph.compile(checkpointer=memory)
         mermaid_png_bytes = app.get_graph().draw_mermaid_png()
         img = Image.open(BytesIO(mermaid_png_bytes))
         return app, img

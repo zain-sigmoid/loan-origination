@@ -4,6 +4,7 @@ from datetime import datetime
 from PIL import Image
 from core.graph import Graph
 import pandas as pd
+import uuid
 
 
 def format_user_bubble(content, timestamp):
@@ -34,7 +35,7 @@ def format_assistant_bubble(answer, timestamp, chart_key=None):
 
 
 def show_agentic_chat_interface():
-    st.title("🤖 Lending AI Chat – Agentic Mode")
+    st.title("Origination Data Analytics Tool")
 
     if "graph_app" not in st.session_state:
         graph = Graph()
@@ -49,6 +50,9 @@ def show_agentic_chat_interface():
 
     if "charts_to_show" not in st.session_state:
         st.session_state.charts_to_show = set()
+
+    if "thread_id" not in st.session_state:
+        st.session_state.thread_id = str(uuid.uuid4())
 
     # Render chat history
     if "chat_log" in st.session_state:
@@ -95,8 +99,13 @@ def show_agentic_chat_interface():
         # LangGraph execution
         with st.spinner("Analysing..."):
             app = st.session_state.graph_app
-            state = {"messages": [HumanMessage(content=prompt)], "next": ""}
-            stream = app.stream(state)
+            state = {
+                "messages": [HumanMessage(content=prompt)],
+                "next": "",
+                "hop_count": 0,
+                "thread_id": st.session_state.thread_id,
+            }
+            stream = app.stream(state, config={"thread_id": st.session_state.thread_id})
             shown_agent_response = False
 
             for step in stream:
@@ -109,12 +118,13 @@ def show_agentic_chat_interface():
                     approach = agent_response.get("approach", "")
                     chart_path = agent_response.get("figure")
                     table = agent_response.get("table")
+                    if table is not None and isinstance(table, dict):
+                        table = pd.DataFrame.from_dict(table)
                     chart_key = (
                         f"chart_{len(st.session_state.chat_log)}"
                         if chart_path
                         else None
                     )
-
                     assistant_html = format_assistant_bubble(
                         answer,
                         datetime.now().strftime("%H:%M:%S"),

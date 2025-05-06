@@ -151,7 +151,10 @@ class BI_Agent:
         """
         self.helper_functions[name] = func
 
-    def run(self, question):
+    def format_messages(self, messages):
+        return "\n".join(f"{m.type}: {m.content}" for m in messages)
+
+    def run(self, question, history=""):
         """
         Run the prompt and get LLM response.
 
@@ -174,11 +177,12 @@ class BI_Agent:
                     "data_description": self.data_description,
                     "question": question,
                     "messages": [HumanMessage(content=question)],
+                    "conversation_history": self.format_messages(history),
                 }
             )
         )
 
-    def generate_response(self, question):
+    def generate_response(self, question, history=""):
         """
         Generate a final response from the agent.
 
@@ -188,7 +192,7 @@ class BI_Agent:
         Returns:
             str or dict: Output from helper function (e.g., executed analysis).
         """
-        llm_response = self.run(question)
+        llm_response = self.run(question, history)
         if "execute_analysis" in self.helper_functions:
             return self.helper_functions["execute_analysis"](
                 df=self.dataset, response_text=llm_response.content
@@ -221,7 +225,10 @@ class FairLendingAgent:
     def add_helper_function(self, name, func):
         self.helper_functions[name] = func
 
-    def run(self, question):
+    def format_messages(self, messages):
+        return "\n".join(f"{m.type}: {m.content}" for m in messages)
+
+    def run(self, question, history=""):
         prompt_template = ChatPromptTemplate.from_messages(
             [
                 ("system", self.prompt.strip()),
@@ -234,12 +241,13 @@ class FairLendingAgent:
                     "data_description": self.data_description,
                     "question": question,
                     "messages": [HumanMessage(content=question)],
+                    "conversation_history": self.format_messages(history),
                 }
             )
         )
 
-    def generate_response(self, question):
-        result = self.run(question)
+    def generate_response(self, question, history=""):
+        result = self.run(question, history)
         if "execute_analysis" in self.helper_functions:
             return self.helper_functions["execute_analysis"](
                 df=self.dataset, response_text=result.content
@@ -268,7 +276,10 @@ class RiskEvaluationAgent:
     def add_helper_function(self, name, func):
         self.helper_functions[name] = func
 
-    def run(self, question):
+    def format_messages(self, messages):
+        return "\n".join(f"{m.type}: {m.content}" for m in messages)
+
+    def run(self, question, history=""):
         prompt_template = ChatPromptTemplate.from_messages(
             [
                 ("system", self.prompt.strip()),
@@ -281,12 +292,13 @@ class RiskEvaluationAgent:
                     "data_description": self.data_description,
                     "question": question,
                     "messages": [HumanMessage(content=question)],
+                    "conversation_history": self.format_messages(history),
                 }
             )
         )
 
-    def generate_response(self, question):
-        result = self.run(question)
+    def generate_response(self, question, history=""):
+        result = self.run(question, history)
         if "execute_analysis" in self.helper_functions:
             return self.helper_functions["execute_analysis"](
                 df=self.dataset, response_text=result.content
@@ -315,7 +327,10 @@ class ScenarioSimulationAgent:
     def add_helper_function(self, name, func):
         self.helper_functions[name] = func
 
-    def run(self, question):
+    def format_messages(self, messages):
+        return "\n".join(f"{m.type}: {m.content}" for m in messages)
+
+    def run(self, question, history=""):
         prompt_template = ChatPromptTemplate.from_messages(
             [
                 ("system", self.prompt.strip()),
@@ -328,12 +343,13 @@ class ScenarioSimulationAgent:
                     "data_description": self.data_description,
                     "question": question,
                     "messages": [HumanMessage(content=question)],
+                    "conversation_history": self.format_messages(history),
                 }
             )
         )
 
-    def generate_response(self, question):
-        result = self.run(question)
+    def generate_response(self, question, history=""):
+        result = self.run(question, history)
         if "execute_analysis" in self.helper_functions:
             return self.helper_functions["execute_analysis"](
                 df=self.dataset, response_text=result.content
