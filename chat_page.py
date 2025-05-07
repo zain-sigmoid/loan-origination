@@ -35,7 +35,6 @@ def format_assistant_bubble(answer, timestamp, chart_key=None):
 
 
 def show_agentic_chat_interface():
-    st.title("Origination Data Analytics Tool")
 
     if "graph_app" not in st.session_state:
         graph = Graph()
@@ -53,6 +52,55 @@ def show_agentic_chat_interface():
 
     if "thread_id" not in st.session_state:
         st.session_state.thread_id = str(uuid.uuid4())
+
+    col1, col2 = st.columns([6, 1])
+    with col1:
+        st.header("Origination Data Analytics Tool")
+    with col2:
+        st.markdown(
+            """
+        <div style="margin-top: 6px;">
+        """,
+            unsafe_allow_html=True,
+        )
+        if st.button(
+            "🔁 Reset Chat", help="Reset Chat and Memory", use_container_width=True
+        ):
+            st.session_state.chat_log = []
+            st.session_state.message_ids = set()
+            st.session_state.charts_to_show = set()
+            st.session_state.reset_successful = False
+
+            # Optional: clear memory
+            app = st.session_state.graph_app
+            if hasattr(app, "checkpointer") and app.checkpointer is not None:
+                try:
+                    app.checkpointer.delete_thread(st.session_state.thread_id)
+                    st.session_state.reset_successful = True
+                except Exception as e:
+                    st.session_state.reset_error = f" Could not clear memory: {str(e)}"
+
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(
+        """
+    <style>
+    .stToast {
+        z-index: 9999 !important;
+    }
+    </style>
+""",
+        unsafe_allow_html=True,
+    )
+
+    if st.session_state.get("reset_successful"):
+        st.toast("✅ Chat reset successfully.")
+        st.session_state.thread_id = str(uuid.uuid4())
+        del st.session_state.reset_successful
+
+    if st.session_state.get("reset_error"):
+        st.toast(st.session_state.reset_error)
+        del st.session_state.reset_error
 
     # Render chat history
     if "chat_log" in st.session_state:
@@ -88,6 +136,7 @@ def show_agentic_chat_interface():
         #     st.image(img, caption="Generated Chart", use_container_width=False)
 
     # Chat input
+    # prompt = st.chat_input("Ask your question...")
     prompt = st.chat_input("Ask your question...")
 
     if prompt:
@@ -112,12 +161,17 @@ def show_agentic_chat_interface():
                 node_name = list(step.keys())[0]
                 node_data = step[node_name]
                 agent_response = node_data.get("agent_response", {})
+                # st.write(agent_response)
                 if agent_response and not shown_agent_response:
                     shown_agent_response = True
                     answer = agent_response.get("answer", "")
                     approach = agent_response.get("approach", "")
                     chart_path = agent_response.get("figure")
+                    # st.write(agent_response)
                     table = agent_response.get("table")
+                    if agent_response.get("error"):
+                        st.error(f"⚠️ Error: {agent_response.get('answer')}")
+                        break
                     if table is not None and isinstance(table, dict):
                         table = pd.DataFrame.from_dict(table)
                     chart_key = (
