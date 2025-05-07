@@ -17,28 +17,15 @@ os.environ["GOOGLE_API_KEY"] = os.getenv("LLM_API_KEY")
 ## LangChain related imports
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
-from langchain_core.messages import (
-    AnyMessage,
-    SystemMessage,
-    HumanMessage,
-    ToolMessage,
-    AIMessage,
-)
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema import HumanMessage
-from langchain_core.tools import tool
-from langchain_experimental.agents import create_pandas_dataframe_agent
-from langchain.agents import initialize_agent, Tool
-from langchain.agents.agent_types import AgentType
-from langgraph.checkpoint.memory import MemorySaver
 
 memory = MemorySaver()
 
 
 class Supervisor:
-    def chain():
+    def chain(history=""):
         prompt = Utility.load_prompts()
         llm = Utility.llm()
         supervisor_prompt = prompt["prompts"]["Supervisor"]
@@ -71,6 +58,12 @@ class Supervisor:
         those changes to support decision-making and optimization. This agent is called when the user asks 
         about scenario generation, comparisons of different outcomes, or analysis of hypothetical situations.""",
             },
+            {
+                "agent_name": "OOD Agent",
+                "description": """The Out of Domain Agent is responsible for handling user queries that are unrelated to mortgage data analytics. It manages casual conversation (e.g., greetings), generic questions about the assistant's capabilities, or any off-topic queries such as weather, jokes, or general knowledge. 
+                This agent ensures a friendly and helpful response while clearly communicating that the system specializes in mortgage loan data. 
+                It is triggered when the user's message does not align with the analytic, compliance, risk, or scenario-based goals of the other agents.""",
+            },
         ]
 
         options = ["FINISH"] + [mem["agent_name"] for mem in members]
@@ -102,8 +95,10 @@ class Supervisor:
                 "required": ["next"],
             },
         }
+        formatted_history = "\n".join(f"{m.type}: {m.content}" for m in history)
         formatted_prompt = supervisor_prompt.format(
             members_info=members_info,
+            conversation_history=formatted_history,
             options=", ".join(options),  # list of agent names
         )
         prompt_s = ChatPromptTemplate.from_messages(
@@ -193,12 +188,18 @@ class BI_Agent:
             str or dict: Output from helper function (e.g., executed analysis).
         """
         llm_response = self.run(question, history)
-        if "execute_analysis" in self.helper_functions:
-            return self.helper_functions["execute_analysis"](
-                df=self.dataset, response_text=llm_response.content
-            )
-        else:
-            return llm_response.content
+        # if "execute_analysis" in self.helper_functions:
+        #     return self.helper_functions["execute_analysis"](
+        #         df=self.dataset, response_text=llm_response.content
+        #     )
+        response = self.helper_functions["execute_analysis"].invoke(
+            {"df": self.dataset, "response_text": llm_response.content}
+        )
+        return response
+
+    #
+    # else:
+    #     return llm_response.content
 
     def __repr__(self):
         """
@@ -248,12 +249,10 @@ class FairLendingAgent:
 
     def generate_response(self, question, history=""):
         result = self.run(question, history)
-        if "execute_analysis" in self.helper_functions:
-            return self.helper_functions["execute_analysis"](
-                df=self.dataset, response_text=result.content
-            )
-        else:
-            return result.content
+        response = self.helper_functions["execute_analysis"].invoke(
+            {"df": self.dataset, "response_text": result.content}
+        )
+        return response
 
     def __repr__(self):
         return (
@@ -299,12 +298,10 @@ class RiskEvaluationAgent:
 
     def generate_response(self, question, history=""):
         result = self.run(question, history)
-        if "execute_analysis" in self.helper_functions:
-            return self.helper_functions["execute_analysis"](
-                df=self.dataset, response_text=result.content
-            )
-        else:
-            return result.content
+        response = self.helper_functions["execute_analysis"].invoke(
+            {"df": self.dataset, "response_text": result.content}
+        )
+        return response
 
     def __repr__(self):
         return (
@@ -350,12 +347,10 @@ class ScenarioSimulationAgent:
 
     def generate_response(self, question, history=""):
         result = self.run(question, history)
-        if "execute_analysis" in self.helper_functions:
-            return self.helper_functions["execute_analysis"](
-                df=self.dataset, response_text=result.content
-            )
-        else:
-            return result.content
+        response = self.helper_functions["execute_analysis"].invoke(
+            {"df": self.dataset, "response_text": result.content}
+        )
+        return response
 
     def __repr__(self):
         return (
@@ -363,3 +358,16 @@ class ScenarioSimulationAgent:
             f"tools={[tool.name for tool in self.tools]}, "
             f"dataset_shape={self.dataset.shape})"
         )
+
+
+class OutOfDomainAgent:
+    def __init__(self, llm):
+        prompt_s = Utility.load_prompts()
+        self.llm = llm
+        self.prompt = prompt_s["prompts"]["Out_Of_Domain"]
+
+    def generate_response(self, question: str) -> str:
+        prompt_template = ChatPromptTemplate.from_messages(
+            [("system", self.prompt), ("human", "{question}")]
+        )
+        return self.llm.invoke(prompt_template.invoke({"question": question}))
