@@ -13,9 +13,10 @@ from .agents import (
     FairLendingAgent,
     RiskEvaluationAgent,
     ScenarioSimulationAgent,
+    OutOfDomainAgent,
 )
 from langgraph.checkpoint.memory import MemorySaver
-from .utils import Utility, Helper, Tools
+from .utils import Utility, Helper, Tools, execute_analysis
 import functools
 from typing import TypedDict, Annotated, List
 from langchain_core.messages import (
@@ -59,7 +60,8 @@ class Graph:
                 "agent_res": agent_res,
                 "thread_id": state["thread_id"],
             }
-        supervisor_chain = Supervisor.chain()
+        history = state["messages"]
+        supervisor_chain = Supervisor.chain(history=history)
         result = supervisor_chain.invoke({"messages": state["messages"]})
         agent_name = result["next"]
         last_message = state["messages"][-1].content.lower()
@@ -102,7 +104,7 @@ class Graph:
             tools=[],
             data_description=self.data_description,
             dataset=self.data,
-            helper_functions={"execute_analysis": tool.execute_analysis},
+            helper_functions={"execute_analysis": execute_analysis},
         )
         question = next(
             (
@@ -139,7 +141,7 @@ class Graph:
             llm=Utility.llm(),
             data_description=self.data_description,
             dataset=self.data,
-            helper_functions={"execute_analysis": tool.execute_analysis},
+            helper_functions={"execute_analysis": execute_analysis},
         )
         question = next(
             (
@@ -176,7 +178,7 @@ class Graph:
             llm=Utility.llm(),
             data_description=self.data_description,
             dataset=self.data,
-            helper_functions={"execute_analysis": tool.execute_analysis},
+            helper_functions={"execute_analysis": execute_analysis},
         )
         question = next(
             (
@@ -213,7 +215,7 @@ class Graph:
             llm=Utility.llm(),
             data_description=self.data_description,
             dataset=self.data,
-            helper_functions={"execute_analysis": tool.execute_analysis},
+            helper_functions={"execute_analysis": execute_analysis},
         )
         question = next(
             (
@@ -245,6 +247,25 @@ class Graph:
         )
         return response, [HumanMessage(content=message)]
 
+    def ood_agent(self, state: AgentState):
+        OODAgent = OutOfDomainAgent(llm=Utility.ood_llm())
+        question = next(
+            (
+                m.content
+                for m in reversed(state["messages"])
+                if isinstance(m, HumanMessage)
+            ),
+            "",
+        )
+        resp = OODAgent.generate_response(question)
+        message = "answer we got from this agent is:\n" + resp.content
+        response = {
+            "answer": resp.content,
+            "approach": "",
+            "figure": "",
+        }
+        return response, [HumanMessage(content=message)]
+
     def finish(self, state: AgentState):
         print("✅ Conversation complete.")
         print("Final message:", state["messages"][-1].content)
@@ -269,6 +290,9 @@ class Graph:
             agent_func=self.general_agent,
             name="Scenario Simulation Agent",
         )
+        ood_agent_node = functools.partial(
+            self.agent_node, agent_func=self.ood_agent, name="OOD Agent"
+        )
 
         graph = StateGraph(AgentState)
 
@@ -278,12 +302,14 @@ class Graph:
         graph.add_node("Fair Lending Compliance Agent", fair_lending_agent_node)
         graph.add_node("Risk Evaluation Agent", risk_eval_agent_node)
         graph.add_node("Scenario Simulation Agent", scenario_agent_node)
+        graph.add_node("OOD Agent", ood_agent_node)
         graph.add_node("FINISH", self.finish)
 
         graph.add_edge("BI Agent", "supervisor")
         graph.add_edge("Fair Lending Compliance Agent", "supervisor")
         graph.add_edge("Risk Evaluation Agent", "supervisor")
         graph.add_edge("Scenario Simulation Agent", "supervisor")
+        graph.add_edge("OOD Agent", "supervisor")
 
         graph.set_entry_point("supervisor")
         graph.add_conditional_edges(
@@ -294,6 +320,7 @@ class Graph:
                 "Fair Lending Compliance Agent": "Fair Lending Compliance Agent",
                 "Risk Evaluation Agent": "Risk Evaluation Agent",
                 "Scenario Simulation Agent": "Scenario Simulation Agent",
+                "OOD Agent": "OOD Agent",
                 "FINISH": "FINISH",
             },
         )
