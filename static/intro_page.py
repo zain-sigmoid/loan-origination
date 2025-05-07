@@ -39,8 +39,24 @@ def show_intro_page():
     )
 
     # Title and subtitle
+    # st.markdown(
+    #     """<h1 class="title-text">🏦 Lending Risk Analysis</h1>
+    #     <h1 class="title-text">And </h1>
+    #     <h1 class="title-text">Approval Prediction</h1>""",
+    #     unsafe_allow_html=True,
+    # )
     st.markdown(
-        '<h1 class="title-text">🏦 Lending Risk Analysis & Approval Prediction</h1>',
+        """
+                    <div style="display: flex; justify-content: center; text-align: center;flex-direction: column;">
+                        <p style="font-size: 50px; color: #171719; font-weight: bold; font-family: 'Graphik';">
+                            <span style="color: #023E8A;">Lending Risk Analysis</span> 
+                        </p>
+                        <p style="font-size: 50px; color: #171719; font-weight: bold; font-family: 'Graphik';">AND</p>
+                        <p style="font-size: 50px; color: #023E8A; font-weight: bold; font-family: 'Graphik';">
+                            Approval Prediction
+                        </p>
+                    </div>
+                    """,
         unsafe_allow_html=True,
     )
     # st.markdown(
