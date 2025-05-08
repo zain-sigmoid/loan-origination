@@ -88,6 +88,7 @@ class Helper:
 
 class Tools:
     def __init__(self):
+        os.makedirs("plots", exist_ok=True)
         self.PLOT_DIR = "plots"
         os.makedirs(self.PLOT_DIR, exist_ok=True)
 

@@ -1,7 +1,5 @@
 # Environment files
 .env
-<<<<<<< HEAD
 plots/
-=======
-plots/
->>>>>>> staging
+__pycache__/
+*.pyc
