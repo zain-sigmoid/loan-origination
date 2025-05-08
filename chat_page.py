@@ -9,25 +9,28 @@ import uuid
 
 def format_user_bubble(content, timestamp):
     return f"""
-    <div style="background-color:#f1f1f1;padding:10px;border-radius:10px;margin-bottom:5px;max-width:80%;align-self:flex-end;color:black;">
-        <p style="margin:0;">{content}</p>
-        <p style="font-size:10px;text-align:right;color:gray;margin:0;">{timestamp}</p>
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 5px; max-width: 90%;">
+        <div style="background-color: #e1f5fe; padding: 10px; border-radius: 10px;
+                    max-width: 70%; color: black; text-align: left;">
+            <p style="margin: 0;">{content}</p>
+            <p style="font-size: 10px; text-align: right; color: gray; margin: 0;">{timestamp}</p>
+        </div>
     </div>
     """
 
 
 def format_assistant_bubble(answer, timestamp, chart_key=None):
-    chart_button = ""
-    if chart_key:
-        chart_button = f"""
-        <div style="margin-top:5px;">
-            <button id="{chart_key}" style="padding:5px 10px;border:none;border-radius:5px;background:#007bff;color:white;cursor:pointer;">
-                📊 Show Chart
-            </button>
-        </div>
-        """
+    # chart_button = ""
+    # if chart_key:
+    #     chart_button = f"""
+    #     <div style="margin-top:5px;">
+    #         <button id="{chart_key}" style="padding:5px 10px;border:none;border-radius:5px;background:#007bff;color:white;cursor:pointer;">
+    #             📊 Show Chart
+    #         </button>
+    #     </div>
+    #     """
     return f"""
-    <div style="background-color:#e8f0fe;padding:10px;border-radius:10px;margin-bottom:10px;max-width:80%;align-self:flex-start;">
+    <div style="background-color:#e8f0fe;padding:10px;border-radius:10px;margin-bottom:10px;max-width:70%;align-self:flex-start;">
         <p style="margin:0;color:black">{answer}</p>
         <p style="font-size:10px;text-align:right;color:gray;margin:0;">{timestamp}</p>
     </div>
@@ -137,6 +140,12 @@ def show_agentic_chat_interface():
 
     # Chat input
     # prompt = st.chat_input("Ask your question...")
+    # st.markdown(
+    #     """
+    # <div style="max-width: 800px; margin: auto;">
+    # """,
+    #     unsafe_allow_html=True,
+    # )
     prompt = st.chat_input("Ask your question...")
 
     if prompt:
@@ -167,7 +176,7 @@ def show_agentic_chat_interface():
                     answer = agent_response.get("answer", "")
                     approach = agent_response.get("approach", "")
                     chart_path = agent_response.get("figure")
-                    st.write(agent_response)
+                    # st.write(agent_response)
                     table = agent_response.get("table")
                     if agent_response.get("error"):
                         st.error(f"⚠️ Error: {agent_response.get('answer')}")
@@ -247,7 +256,7 @@ def show_agentic_chat_interface():
 
                         if st.session_state[table_toggle_key]:
                             st.dataframe(table)
-
+    # st.markdown("</div>", unsafe_allow_html=True)
     # Auto-scroll to latest
     st.markdown(
         """
