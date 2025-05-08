@@ -15,6 +15,7 @@ from .agents import (
     ScenarioSimulationAgent,
     OutOfDomainAgent,
 )
+from langchain.tools import DuckDuckGoSearchRun
 from langgraph.checkpoint.memory import MemorySaver
 from .utils import Utility, Helper, Tools, execute_analysis
 import functools
@@ -248,7 +249,8 @@ class Graph:
         return response, [HumanMessage(content=message)]
 
     def ood_agent(self, state: AgentState):
-        OODAgent = OutOfDomainAgent(llm=Utility.ood_llm())
+        search_tool = DuckDuckGoSearchRun()
+        OODAgent = OutOfDomainAgent(llm=Utility.ood_llm(), tools=[search_tool])
         question = next(
             (
                 m.content
