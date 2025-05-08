@@ -35,6 +35,14 @@ prompts:
     {data_description}
     </data_description>
 
+    IMPORTANT:
+    - You must ONLY use column names that are explicitly listed in the <data_description> section above.
+    - Do NOT guess, paraphrase, or create new column names.
+    - Before writing code, validate each column you use against the schema.
+
+    Failure to follow this will result in broken code that cannot be executed.
+
+
     Below is the current user query:
     <question>
     {question}
@@ -77,6 +85,7 @@ prompts:
     - Use {{}} around any variable names that you computed in your code (e.g., {{average_loan}}, {{lowest_amount}}).
     - Your answer will be automatically formatted using these variables, so do not hardcode values.
     - Write as if explaining to a business user.
+    - Use bullet points or paragraphs as appropriate. Also you can use icons like "✓" or "✗" to indicate positive or negative findings and bold, italicize, or underline important points.
     - Base your answer solely on data — do not speculate or include vague phrases like "may suggest" or "needs investigation"
     - For follow-up questions, resolve ambiguity using the full conversation history
 
@@ -107,6 +116,13 @@ prompts:
     <data_description>
     {data_description}
     </data_description>
+
+    IMPORTANT:
+    - You must ONLY use column names that are explicitly listed in the <data_description> section above.
+    - Do NOT guess, paraphrase, or create new column names.
+    - Before writing code, validate each column you use against the schema.
+
+    Failure to follow this will result in broken code that cannot be executed.
 
     Below is the question from the user:
     <question>
@@ -181,6 +197,13 @@ prompts:
     {data_description}
     </data_description>
 
+    IMPORTANT:
+    - You must ONLY use column names that are explicitly listed in the <data_description> section above.
+    - Do NOT guess, paraphrase, or create new column names.
+    - Before writing code, validate each column you use against the schema.
+
+    Failure to follow this will result in broken code that cannot be executed.
+
     Below is the question from the user:
     <question>
     {question}
@@ -252,6 +275,13 @@ prompts:
     <data_description>
     {data_description}
     </data_description>
+
+    IMPORTANT:
+    - You must ONLY use column names that are explicitly listed in the <data_description> section above.
+    - Do NOT guess, paraphrase, or create new column names.
+    - Before writing code, validate each column you use against the schema.
+
+    Failure to follow this will result in broken code that cannot be executed.
 
     Below is the question from the user:
     <question>
