@@ -164,11 +164,12 @@ def execute_analysis(df, response_text):
         if "code" in segments and "answer" in segments:
             code = tools._dedent_code(segments["code"])
             # code += f"\n\nanswer_text = f'''{segments['answer']}'''"
+            safe_answer = re.sub(r"\{\s*\}", "[missing value]", segments["answer"])
             combined_code = f"""
 {code}
 
 # Now format the answer using actual results
-answer_text = f'''{segments['answer']}'''
+answer_text = f'''{safe_answer}'''
 """
             try:
                 exec(combined_code, namespace)
@@ -185,7 +186,9 @@ answer_text = f'''{segments['answer']}'''
                         results["table"] = df
             except Exception as e:
                 ans_generated = False
-                results["answer"] = "There was an error in executing the code."
+                results["answer"] = (
+                    f"There was an error in executing the code. {str(e)}"
+                )
 
         # === Execute Chart Code and Save Plot ===
         if "chart" in segments and "no chart" not in segments["chart"].lower():
