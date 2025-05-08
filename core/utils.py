@@ -185,7 +185,9 @@ answer_text = f'''{segments['answer']}'''
                         results["table"] = df
             except Exception as e:
                 ans_generated = False
-                results["answer"] = "There was an error in executing the code."
+                results["answer"] = (
+                    f"There was an error in executing the code.{e} utils.py line 188"
+                )
 
         # === Execute Chart Code and Save Plot ===
         if "chart" in segments and "no chart" not in segments["chart"].lower():
