@@ -210,7 +210,7 @@ answer_text = f'''{segments['answer']}'''
                 chart_generated = True
             except Exception as e:
                 chart_generated = False
-                results["figure"] = "There was an error in executing the chart code."
+                results["figure"] = ""
 
         return results
 

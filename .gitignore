@@ -1,5 +1,5 @@
 # Environment files
 .env
-plots/
+# plots/
 __pycache__/
 *.pyc
