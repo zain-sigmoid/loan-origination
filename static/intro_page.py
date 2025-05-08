@@ -49,7 +49,7 @@ def show_intro_page():
         """
                     <div style="display: flex; justify-content: center; text-align: center;flex-direction: column;">
                         <p style="font-size: 50px; color: #171719; font-weight: bold; font-family: 'Graphik';">
-                            <span style="color: #023E8A;">Lending Risk Analysis</span> 
+                            <span style="color: #023E8A;">Lending <span style="color: red;">Risk</span> Analysis</span> 
                         </p>
                         <p style="font-size: 50px; color: #171719; font-weight: bold; font-family: 'Graphik';">AND</p>
                         <p style="font-size: 50px; color: #023E8A; font-weight: bold; font-family: 'Graphik';">
