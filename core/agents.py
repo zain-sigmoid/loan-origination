@@ -1,26 +1,19 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import os
 import re
 import warnings
 from dotenv import load_dotenv
+from langgraph.checkpoint.memory import MemorySaver
+from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.schema import HumanMessage
+from langchain_core.messages import AIMessage
+
 
 warnings.filterwarnings("ignore")
 from .utils import Utility
 
 load_dotenv()
-
-
 os.environ["GOOGLE_API_KEY"] = os.getenv("LLM_API_KEY")
-
-## LangChain related imports
-from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver
-from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.schema import HumanMessage
-
 memory = MemorySaver()
 
 
@@ -361,13 +354,62 @@ class ScenarioSimulationAgent:
 
 
 class OutOfDomainAgent:
-    def __init__(self, llm):
+    def __init__(self, llm, tools):
         prompt_s = Utility.load_prompts()
         self.llm = llm
         self.prompt = prompt_s["prompts"]["Out_Of_Domain"]
+        self.tools = tools or []
+
+    def format_bullet_output(self, raw_text: str) -> str:
+        # Normalize bullets: replace "*" or unicode bullets with "-"
+        cleaned = re.sub(r"^[\*\u2022]\s*", "- ", raw_text, flags=re.MULTILINE)
+
+        # Ensure bullets start on a new line
+        cleaned = re.sub(r"\n?[\*\u2022]\s*", r"\n- ", cleaned)
+
+        # Ensure at least one newline between list items
+        cleaned = re.sub(r"(?<!\n)\n-(?!\s)", r"\n\n- ", cleaned)
+
+        # Fix any mixed bullet with colon issue like:
+        # - **Date:** - Forecast...
+        cleaned = re.sub(r"(- \*\*[^:\n]+:\*\*)\s*-\s*", r"\1 ", cleaned)
+
+        return cleaned.strip()
 
     def generate_response(self, question: str) -> str:
         prompt_template = ChatPromptTemplate.from_messages(
             [("system", self.prompt), ("human", "{question}")]
         )
-        return self.llm.invoke(prompt_template.invoke({"question": question}))
+        response = self.llm.invoke(prompt_template.invoke({"question": question}))
+        if "[SEARCH_REQUIRED]" in response.content:
+            search_result = self.tools[0].run(question)
+            # print(search_result)
+            # format_prompt = ChatPromptTemplate.from_messages(
+            #     [
+            #         (
+            #             "system",
+            #             """You are a helpful assistant.
+            #             Summarize the following text into **clean, well-formatted bullet points** with no empty lines or broken bullets.
+
+            #             **Formatting instructions:**
+            #             - Use exactly one bullet point per idea.
+            #             - Each bullet should start with a hyphen (`-`).
+            #             - Avoid extra line breaks inside bullets.
+            #             - Combine short related facts into a single line.
+            #             - Bold key numbers, locations, or entities using Markdown (e.g., **Bengaluru**, **21.7°C**).
+            #             - Do not use colons (`:`) followed by a second bullet.
+            #             - Avoid repeating labels like "Temperature", "Humidity" unless they are part of the original sentence.
+
+            #             Here is the text:
+            #             {raw_text}""",
+            #         ),
+            #         ("human", "{raw_text}"),
+            #     ]
+            # )
+            # prompt = format_prompt.invoke({"raw_text": search_result})
+            # formatted = self.llm.invoke(prompt)
+            # # formatted_output = self.format_bullet_output(formatted.content)
+            # print(formatted)
+            return AIMessage(content=search_result)
+        else:
+            return response
