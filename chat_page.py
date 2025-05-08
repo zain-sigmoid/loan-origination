@@ -167,7 +167,7 @@ def show_agentic_chat_interface():
                     answer = agent_response.get("answer", "")
                     approach = agent_response.get("approach", "")
                     chart_path = agent_response.get("figure")
-                    # st.write(agent_response)
+                    st.write(agent_response)
                     table = agent_response.get("table")
                     if agent_response.get("error"):
                         st.error(f"⚠️ Error: {agent_response.get('answer')}")
