@@ -1,5 +1,36 @@
-# Environment files
-.env
-# plots/
+
+plots/
+
+.devcontainer/
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+
+# macOS Finder metadata
+.DS_Store
+.devcontainer/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VS Code settings
+.vscode/
+
+# Streamlit cache
+.streamlit/
+.cache/
+
+# Environment variables
+.env
+.env.*
+
+# Pytest and test artifacts
+htmlcov/
+.coverage
+*.log
