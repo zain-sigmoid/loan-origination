@@ -7,32 +7,64 @@ import pandas as pd
 import uuid
 
 
-def format_user_bubble(content, timestamp):
-    return f"""
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 5px; max-width: 90%;">
-        <div style="background-color: #e1f5fe; padding: 10px; border-radius: 10px;
-                    max-width: 70%; color: black; text-align: left;">
-            <p style="margin: 0;">{content}</p>
-            <p style="font-size: 10px; text-align: right; color: gray; margin: 0;">{timestamp}</p>
-        </div>
-    </div>
+# def format_user_bubble(content, timestamp):
+#     return f"""
+#     <div style="display: flex; justify-content: flex-end; margin-bottom: 5px; padding-right:10%;">
+#         <div style="background-color: #e1f5fe; padding: 10px; border-radius: 10px;
+#                     max-width: 70%; color: black; text-align: left;">
+#             <p style="margin: 0;">{content}</p>
+#             <p style="font-size: 10px; text-align: right; color: gray; margin: 0;">{timestamp}</p>
+#         </div>
+#     </div>
+#     """
+def format_user_bubble(query, timestamp):
     """
+    Format user message as a chat bubble on the right side of the screen
+
+    Args:
+        query: The user's message text
+
+    Returns:
+        None (displays the message directly using st.markdown)
+    """
+    return f"""
+        <style>
+        .user-bubble {{
+            background-color: #E9F5FE;
+            border-radius: 18px 18px 0px 18px;
+            padding: 12px 18px;
+            margin: 10px 0px 10px auto;
+            max-width: 80%;
+            display: inline-block;
+            float: right;
+            clear: both;
+            color: #0A2540;
+            box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);
+            word-wrap: break-word;
+        }}
+        .user-bubble-container {{
+            display: flex;
+            justify-content: flex-end;
+            width: 100%;
+            margin-bottom: 10px;
+            padding-right: 12%;
+        }}
+        </style>
+        
+        <div class="user-bubble-container">
+            <div class="user-bubble">
+                {query}
+            </div>
+        </div>
+        """
 
 
 def format_assistant_bubble(answer, timestamp, chart_key=None):
-    # chart_button = ""
-    # if chart_key:
-    #     chart_button = f"""
-    #     <div style="margin-top:5px;">
-    #         <button id="{chart_key}" style="padding:5px 10px;border:none;border-radius:5px;background:#007bff;color:white;cursor:pointer;">
-    #             📊 Show Chart
-    #         </button>
-    #     </div>
-    #     """
     return f"""
-    <div style="background-color:#e8f0fe;padding:10px;border-radius:10px;margin-bottom:10px;max-width:70%;align-self:flex-start;">
-        <p style="margin:0;color:black">{answer}</p>
-        <p style="font-size:10px;text-align:right;color:gray;margin:0;">{timestamp}</p>
+    <div style="display: flex; justify-content: flex-start; margin-left:12%;">
+        <div style="padding:10px;border-radius:10px;margin-bottom:10px;max-width:88%;align-self:flex-start;">
+            <p style="margin:0;color: var(--text-color);">{answer}</p>
+        </div>
     </div>
     """
 
@@ -85,16 +117,6 @@ def show_agentic_chat_interface():
 
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown(
-        """
-    <style>
-    .stToast {
-        z-index: 9999 !important;
-    }
-    </style>
-""",
-        unsafe_allow_html=True,
-    )
 
     if st.session_state.get("reset_successful"):
         st.toast("✅ Chat reset successfully.")
@@ -113,22 +135,29 @@ def show_agentic_chat_interface():
             chart_path = entry.get("chart_path")
             chart_key = entry.get("chart_key")
             table = entry.get("table")
-            if chart_path and chart_key:
-                toggle_key = f"show_chart_{chart_key}"
-                show_chart = st.toggle("📊 Show Chart", key=toggle_key)
-                if show_chart:
-                    img = Image.open(chart_path)
-                    st.image(img, caption="Generated Chart", use_container_width=False)
+            col1, col2, col3 = st.columns([1, 3, 4])
+            # 📊 Chart toggle in center
+            with col2:
+                if chart_path and chart_key:
+                    toggle_key = f"show_chart_{chart_key}"
+                    show_chart = st.toggle("📊 Show Chart", key=toggle_key)
+                    if show_chart:
+                        img = Image.open(chart_path)
+                        st.image(
+                            img, caption="Generated Chart", use_container_width=False
+                        )
 
-            if (
-                table is not None
-                and isinstance(table, pd.DataFrame)
-                and not table.empty
-            ):
-                table_toggle_key = f"show_table_{chart_key}"
-                show_table = st.toggle("🧾 Show Table", key=table_toggle_key)
-                if show_table:
-                    st.dataframe(table)
+            # 🧾 Table toggle aligned next to it
+            with col3:
+                if (
+                    table is not None
+                    and isinstance(table, pd.DataFrame)
+                    and not table.empty
+                ):
+                    table_toggle_key = f"show_table_{chart_key}"
+                    show_table = st.toggle("🧾 Show Table", key=table_toggle_key)
+                    if show_table:
+                        st.dataframe(table)
 
         # Always show chat bubble
         # st.markdown(entry["html"], unsafe_allow_html=True)
