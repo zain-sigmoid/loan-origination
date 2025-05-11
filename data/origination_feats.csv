@@ -1,4 +1,4 @@
-mapping id,Field Name,Description,Data Type,Values
+mapping_id,filed_name,description,data_type,values
 1,activity_year,The calendar year the data submission covers,categorical,"2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024"
 2,lei,A financial institution's Legal Entity Identifier,categorical,"Varying values (e.g., ...)"
 3,derived_msa-md,"The 5 digit derived MSA (metropolitan statistical area) or MD (metropolitan division) code. An MSA/MD is an area that has at least one urbanized area of 50,000 or more population.",categorical,Varying values
@@ -7,7 +7,7 @@ mapping id,Field Name,Description,Data Type,Values
 6,census_tract,11 digit census tract number,categorical,Varying values
 7,derived_loan_product_type,Derived loan product type from Loan Type and Lien Status fields for easier querying of specific records,categoricaL,"Conventional: First Lien, FHA: First Lien, VA: First Lien, FSA/RHS: First Lien, Conventional: Subordinate Lien, FHA: Subordinate Lien, VA: Subordinate Lien, FSA/RHS: Subordinate Lien"
 8,derived_dwelling_category,Derived dwelling type from Construction Method and Total Units fields for easier querying of specific records,Categorical,"Single Family (1-4 Units): Site-Built, Multifamily: Site-Built (5+ Units), Single Family (1-4 Units): Manufactured, Multifamily: Manufactured (5+ Units)"
-9,conforming_loan_limit,Indicates whether the reported loan amount exceeds the GSE (government sponsored enterprise) conforming loan limit,,"C (Conforming), NC (Nonconforming), U (Undetermined), NA (Not Applicable)"
+9,conforming_loan_limit,Indicates whether the reported loan amount exceeds the GSE (government sponsored enterprise) conforming loan limit,Categorical,"C (Conforming), NC (Nonconforming), U (Undetermined), NA (Not Applicable)"
 10,derived_ethnicity,Single aggregated ethnicity categorization derived from applicant/borrower and co-applicant/co-borrower ethnicity fields,Categorical,"Hispanic or Latino, Not Hispanic or Latino, Joint, Ethnicity Not Available, Free Form Text Only"
 11,derived_race,Single aggregated race categorization derived from applicant/borrower and co-applicant/co-borrower race fields,Categorical,"American Indian or Alaska Native, Asian, Black or African American, Native Hawaiian or Other Pacific Islander, White, 2 or more minority races, Joint, Free Form Text Only, Race Not Available"
 12,derived_sex,Single aggregated sex categorization derived from applicant/borrower and co-applicant/co-borrower sex fields,Categorical,"Male, Female, Joint, Sex Not Available"
@@ -21,7 +21,7 @@ mapping id,Field Name,Description,Data Type,Values
 20,open-end_line_of_credit,Whether the covered loan or application is for an open-end line of credit,Alphanumeric,"1- Open-end line of credit, 2- Not an open-end line of credit, 1111-Exempt"
 21,business_or_commercial_purpose,Whether the covered loan or application is primarily for a business or commercial purpose,Alphanumeric,"1 - Primarily for a business or commercial purpose, 2 - Not primarily for a business or commercial purpose, 1111 - Exempt"
 22,loan_amount,"The amount of the covered loan, or the amount applied for",Alphanumeric,Varying values
-23,combined_loan_to_value_ratio,The ratio of the total amount of debt secured by the property to the value of the property relied on in making the credit decision,Alphanumeric,Varying values
+23,loan_to_value_ratio,The ratio of the total amount of debt secured by the property to the value of the property relied on in making the credit decision,Alphanumeric,Varying values
 24,interest_rate,The interest rate for the covered loan or application,Alphanumeric,Varying values
 25,rate_spread,The difference between the covered loan's annual percentage rate (APR) and the average prime offer rate (APOR) for a comparable transaction as of the date the interest rate is set,Alphanumeric,Varying values
 26,hoepa_status,Whether the covered loan is a high-cost mortgage,Alphanumeric,"1- High-cost mortgage, 2- Not a high-cost mortgage, 3- Not applicable"
@@ -43,7 +43,7 @@ mapping id,Field Name,Description,Data Type,Values
 42,manufactured_home_secured_property_type,"Whether the covered loan or application is, or would have been, secured by a manufactured home and land, or by a manufactured home and not land",Alphanumeric,"1 - Manufactured home and land, 2 - Manufactured home and not land, 3 - Not applicable, 1111 - Exempt"
 43,manufactured_home_land_property_interest,"The applicant’s or borrower’s land property interest in the land on which a manufactured home is, or will be, located",Alphanumeric,"1 - Direct ownership, 2 - Indirect ownership, 3 - Paid leasehold, 4 - Unpaid leasehold, 5 - Not applicable, 1111 - Exempt"
 44,total_units,"The number of individual dwelling units related to the property securing the covered loan or, in the case of an application, proposed to secure the covered loan",Alphanumeric,"1, 2, 3, 4, 5-24, 25-49, 50-99, 100-149, >149"
-45,ageapplicant,The age of the applicant,Alphanumeric,"<25, 25-34, 35-44, 45-54, 55-64, 65-74, >74, 8888"
+45,applicant_age,The age of the applicant,Alphanumeric,"<25, 25-34, 35-44, 45-54, 55-64, 65-74, >74, 8888"
 46,multifamily_affordable_units,"Reported values as a percentage, rounded to the nearest whole number, of the value reported for Total Units",Alphanumeric,Varying values
 47,income,"The gross annual income, in thousands of dollars, relied on in making the credit decision, or if a credit decision was not made, the gross annual income relied on in processing the application",Alphanumeric,Varying values
 48,debt_to_income_ratio,"The ratio, as a percentage, of the applicant’s or borrower’s total monthly debt to the total monthly income relied on in making the credit decision",Alphanumeric,"Varying values; Ratios binned are: <20%, 20%-<30%, 30%-<36%, 36%, 37%, 38%, 39%, 40%, 41%, 42%, 43%, 44%, 45%, 46%, 47%, 48%, 49%, 50%-60%, >60%, NA, Exempt"
