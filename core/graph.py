@@ -17,6 +17,8 @@ from .agents import (
 )
 from langchain.tools import DuckDuckGoSearchRun
 from .utils import Utility, Helper, Tools, execute_analysis
+
+# from .tools import get_schema_inf
 import functools
 from typing import TypedDict, Annotated, List
 from langchain_core.messages import (
@@ -332,7 +334,10 @@ class Graph:
     ):
         data_loader = st.session_state.data
         self.data = data_loader.data
-        self.data_description = data_loader.data_description
+        data_dictionary = data_loader.format_schema_from_excel(
+            data_loader.data_description
+        )
+        self.data_description = data_dictionary
 
         # Build and compile the graph
         graph = self.build()
