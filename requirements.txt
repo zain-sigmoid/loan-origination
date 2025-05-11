@@ -6,6 +6,7 @@ langgraph
 langchain-community
 langchain-google-genai
 langchain-experimental
+google-genai
 tabulate
 pyppeteer
 termcolor
