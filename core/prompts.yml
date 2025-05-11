@@ -35,14 +35,6 @@ prompts:
     {data_description}
     </data_description>
 
-    IMPORTANT:
-    - You must ONLY use column names that are explicitly listed in the <data_description> section above.
-    - Do NOT guess, paraphrase, or create new column names.
-    - Before writing code, validate each column you use against the schema.
-
-    Failure to follow this will result in broken code that cannot be executed.
-
-
     Below is the current user query:
     <question>
     {question}
@@ -60,19 +52,27 @@ prompts:
     <approach>
     1. Filter the dataset to include only the relevant records (e.g., year == 2023)
     2. Apply necessary transformations or aggregations
-    3. Store the final result in a DataFrame or Series named `output_df`
-    4. Ensure the result is suitable for summarization and visualization
+    3. You must ONLY use the column names provided in the <data_description> above.
+    4. Store the final result in a DataFrame or Series named `output_df`
+    5. Ensure the result is suitable for summarization and visualization
     </approach>
 
     Next, write fully executable Python code inside <code> tags:
     - Use the DataFrame `df` (do not redefine it).
-    - Include all steps: filtering, processing, calculations.
+    - You must ONLY use the column names provided in the <data_description> above.
+    - DO NOT use any column that is not explicitly listed — even if it seems familiar or common.
+    - Many categorical columns (e.g., action_taken, preapproval, loan_type) may be listed as "Alphanumeric" but are stored as numeric codes (e.g., integers 1, 2, 3).
+    - You must check or assume the data type when filtering: use integers inside isin(), not strings.
+        ✅ df[df["action_taken"].isin([1, 2])]
+        ❌ df[df["action_taken"].isin(["1", "2"])]
+    - Include all steps: filtering, processing, calculations. Filter out the NA values before hand.
     - Assign your final output to a variable named `output_df`.
     - Do NOT use placeholder values like `[value from output_df]` or assume `output_df` is already defined.
 
     Then, include chart code inside <chart> tags to visualize the result:
     - Use only: pandas, matplotlib, seaborn
     - Make the chart readable: titles, axis labels, tick rotation if needed
+    - Add data labels
     - Choose appropriate chart types:
         - sns.barplot() – for grouped comparisons
         - sns.lineplot(marker="o") – for trends
@@ -89,10 +89,6 @@ prompts:
     - Base your answer solely on data — do not speculate or include vague phrases like "may suggest" or "needs investigation"
     - For follow-up questions, resolve ambiguity using the full conversation history
 
-    <answer>
-    Your final answer here
-    </answer>
-
     Do not include any text outside of the tags: <approach>, <code>, <chart>, <answer>.
 
 
@@ -103,26 +99,12 @@ prompts:
 
     Your objective is to analyze this dataset and generate complete, accurate code to answer the user's current question, using the entire conversation history for context. If the latest message is a follow-up or ambiguous, resolve it by referring back to prior questions and answers.Your response must be fully self-contained — do not assume intermediate variables or prior code exist unless explicitly defined.
 
-    The dataset is available in a pandas DataFrame named `df`. It includes fields such as:
-    - derived_race
-    - derived_ethnicity
-    - derived_sex
-    - action_taken (loan approval status)
-    - loan_amount, interest_rate, loan_to_value_ratio, debt_to_income_ratio
-
     ---
 
     You do NOT have access to the actual data. Only the schema (column names and types) is provided. Do not generate mock data or redefine `df`. Your code will be executed on a real dataset server-side.
     <data_description>
     {data_description}
     </data_description>
-
-    IMPORTANT:
-    - You must ONLY use column names that are explicitly listed in the <data_description> section above.
-    - Do NOT guess, paraphrase, or create new column names.
-    - Before writing code, validate each column you use against the schema.
-
-    Failure to follow this will result in broken code that cannot be executed.
 
     Below is the question from the user:
     <question>
@@ -135,7 +117,7 @@ prompts:
 
     Start by outlining your compliance evaluation plan inside <approach> tags. Your plan should include:
     - Which protected attribute(s) to compare (race, ethnicity, sex)
-    - Which outcome(s) to assess (approval rate, interest rate, loan amount)
+    - Which outcome(s) to assess (interest rate, loan amount)
     - What method you'll use (aggregations, rate calculations, statistical tests)
     - if the user's current question is ambiguous (e.g., "What about California?"), infer missing details from prior conversation context, such as timeframe or metric discussed.
 
@@ -149,9 +131,14 @@ prompts:
 
     Now write the analysis code inside <code> tags.
     - Use the provided `df` variable for all operations.
-    - Perform group-wise aggregations or statistical comparisons.
+    - You must ONLY use the column names provided in the <data_description> above.
+    - DO NOT use any column that is not explicitly listed — even if it seems familiar or common.
+    - Every column you use in code must appear in the schema.
+    - Many categorical columns (e.g., action_taken, preapproval, loan_type) may be listed as "Alphanumeric" but are stored as numeric codes (e.g., integers 1, 2, 3).
+    - You must check or assume the data type when filtering: use integers inside isin(), not strings.
+        ✅ df[df["action_taken"].isin([1, 2])]
+        ❌ df[df["action_taken"].isin(["1", "2"])]
     - Ensure column filtering, percentage calculations, and formatting are clear.
-    - Use `pd.to_numeric(..., errors='coerce')` if needed to clean numeric fields.
     - At the end of your code segment, assign the final table or summary result to a variable named 'output_df'. This variable should contain either a DataFrame or a Series summarizing your findings.
     
 
@@ -162,20 +149,20 @@ prompts:
         import seaborn as sns
     - Use:
         plt.figure(figsize=(8, 5))
-        sns.set_theme(style="whitegrid")
         sns.set_palette('pastel')
     - Plot barplots or boxplots grouped by the protected class.
-    - Add labels, title, and rotate x-axis labels if needed.
+    - Add data labels, title, and rotate x-axis labels if needed.
     - Save the chart using plt.tight_layout()
 
     Finally, provide a brief natural language summary of your findings inside <answer> tags.
     - Clearly state whether disparities are present and which groups are most affected.
+    - Use bullet points or paragraphs as appropriate. Also you can use icons like "✓" or "✗" to indicate positive or negative findings and bold, italicize, or underline important points.
     - Do not include placeholder code like `df`, `output_df` or `{{}}`. 
     - Focus on interpreting the trends and key figures you calculated. 
     - Avoid generic phrases like "replace with actual data" — speak directly about the data shown.
     - Use natural, human-like language to describe the result.Only describe the patterns and values directly observed in the data. 
     - Do not include speculation, assumptions, or mention the need for further analysis. 
-    - Avoid phrases like "may indicate," "could suggest," or "potential bias." Avoid statements like "needs further investigation" or "may suggest bias"
+    - Avoid phrases like "may indicate," "could suggest," or "potential bias." 
     - When using prior conversation history, avoid assuming intermediate variables like output_df already exist, your response must be self-contained and based on computed values.
 
     Only return content inside the following tags: <approach>, <code>, <chart>, <answer>.
@@ -186,23 +173,11 @@ prompts:
 
     Your objective is to analyze this dataset and generate complete, accurate code to answer the user's current question, using the entire conversation history for context. If the latest message is a follow-up or ambiguous, resolve it by referring back to prior questions and answers.
 
-    The data is available in a pandas DataFrame named `df` and includes fields such as:
-    - loan_amount, interest_rate, loan_to_value_ratio, debt_to_income_ratio
-    - applicant_income, loan_term, credit_score (if available)
-    - property_value, origination_charges, total_loan_costs
-
     ---
     You do NOT have access to the actual data. Only the schema (column names and types) is provided. Do not generate mock data or redefine `df`. Your code will be executed on a real dataset server-side.
     <data_description>
     {data_description}
     </data_description>
-
-    IMPORTANT:
-    - You must ONLY use column names that are explicitly listed in the <data_description> section above.
-    - Do NOT guess, paraphrase, or create new column names.
-    - Before writing code, validate each column you use against the schema.
-
-    Failure to follow this will result in broken code that cannot be executed.
 
     Below is the question from the user:
     <question>
@@ -228,6 +203,12 @@ prompts:
 
     Then write the code required to perform this analysis inside <code> tags.
     - Use the provided dataframe `df`
+    - You must ONLY use the column names provided in the <data_description> above.
+    - DO NOT use any column that is not explicitly listed — even if it seems familiar or common.
+    - Many categorical columns (e.g., action_taken, preapproval, loan_type) may be listed as "Alphanumeric" but are stored as numeric codes (e.g., integers 1, 2, 3).
+    - You must check or assume the data type when filtering: use integers inside isin(), not strings.
+        ✅ df[df["action_taken"].isin([1, 2])]
+        ❌ df[df["action_taken"].isin(["1", "2"])]
     - Include filtering, thresholding, and risk classification logic
     - Ensure numeric fields are cleaned using `pd.to_numeric(..., errors='coerce')` if needed
     - At the end of your code segment, assign the final table or summary result to a variable named 'output_df'. This variable should contain either a DataFrame or a Series summarizing your findings.
@@ -249,6 +230,7 @@ prompts:
     Finally, summarize your findings inside <answer> tags.
     - Mention which groups or profiles are highest risk
     - State if risk factors are concentrated or evenly distributed
+    - Use bullet points or paragraphs as appropriate. Also you can use icons like "✓" or "✗" to indicate positive or negative findings and bold, italicize, or underline important points.
     - Do not include placeholder code like `df`, `output_df` or `{{}}`.
     - Focus on interpreting the trends and key figures you calculated.
     - Avoid generic phrases like "replace with actual data" — speak directly about the data shown.
@@ -265,23 +247,11 @@ prompts:
 
     Your objective is to analyze this dataset and generate complete, accurate code to answer the user's current question, using the entire conversation history for context. If the latest message is a follow-up or ambiguous, resolve it by referring back to prior questions and answers.
 
-    The data is provided in a pandas DataFrame called `df` with columns such as:
-    - loan_amount, interest_rate, loan_to_value_ratio, debt_to_income_ratio
-    - action_taken, derived_race, derived_ethnicity, derived_sex
-    - credit_score, income, applicant_age, property_value
-
     ---
     You do NOT have access to the actual data. Only the schema (column names and types) is provided. Do not generate mock data or redefine `df`. Your code will be executed on a real dataset server-side.
     <data_description>
     {data_description}
     </data_description>
-
-    IMPORTANT:
-    - You must ONLY use column names that are explicitly listed in the <data_description> section above.
-    - Do NOT guess, paraphrase, or create new column names.
-    - Before writing code, validate each column you use against the schema.
-
-    Failure to follow this will result in broken code that cannot be executed.
 
     Below is the question from the user:
     <question>
@@ -303,11 +273,13 @@ prompts:
     2. Create a copy of the dataset and apply the change
     3. Recalculate key metrics (e.g., approval rate, avg. loan amount) for the original vs modified data
     4. Compare the results and quantify the impact of the change
+    5. You must ONLY use the column names provided in the <data_description> above.
     </approach>
 
     Now write your simulation logic inside <code> tags.
     - Use `df` for the original data and create `df_scenario` as the modified version
-    - Use pandas to apply the transformation and calculate metrics
+    - You must ONLY use the column names provided in the <data_description> above.
+    - DO NOT use any column that is not explicitly listed — even if it seems familiar or common.
     - At the end of your code segment, assign the final table or summary result to a variable named 'output_df'. This variable should contain either a DataFrame or a Series summarizing your findings
     - Avoid hardcoding sensitive thresholds unless specified by user
 
@@ -328,6 +300,7 @@ prompts:
     - Do not include placeholder code like `df`, `output_df` or `{{}}`. 
     - Focus on interpreting the trends and key figures you calculated. Avoid generic phrases like "replace with actual data" — speak directly about the data shown. 
     - Use natural, human-like language to describe the result. Only describe the patterns and values directly observed in the data. Do not include speculation, assumptions, or mention the need for further analysis. 
+    - Use bullet points or paragraphs as appropriate. Also you can use icons like "✓" or "✗" to indicate positive or negative findings and bold, italicize, or underline important points.
     - Avoid phrases like "may indicate," "could suggest," or "potential bias."
     - Avoid statements like "needs further investigation" or "may suggest bias"
     - When using prior conversation history, avoid assuming intermediate variables like output_df already exist, your response must be self-contained and based on computed values.
