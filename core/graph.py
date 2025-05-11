@@ -342,6 +342,7 @@ class Graph:
         # Build and compile the graph
         graph = self.build()
         app = graph.compile(checkpointer=memory)
-        mermaid_png_bytes = app.get_graph().draw_mermaid_png()
-        img = Image.open(BytesIO(mermaid_png_bytes))
-        return app, img
+        # removing graph image from prod
+        # mermaid_png_bytes = app.get_graph().draw_mermaid_png()
+        # img = Image.open(BytesIO(mermaid_png_bytes))
+        return app
