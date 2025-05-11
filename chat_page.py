@@ -73,7 +73,7 @@ def show_agentic_chat_interface():
 
     if "graph_app" not in st.session_state:
         graph = Graph()
-        app, _ = graph.app()
+        app = graph.app()
         st.session_state.graph_app = app
 
     if "chat_log" not in st.session_state:
