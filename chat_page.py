@@ -5,6 +5,7 @@ from PIL import Image
 from core.graph import Graph
 import pandas as pd
 import uuid
+import time
 
 
 # def format_user_bubble(content, timestamp):
@@ -33,7 +34,7 @@ def format_user_bubble(query, timestamp):
             background-color: #E9F5FE;
             border-radius: 18px 18px 0px 18px;
             padding: 12px 18px;
-            margin: 10px 0px 10px auto;
+            margin: 5px 0px;
             max-width: 80%;
             display: inline-block;
             float: right;
@@ -46,7 +47,7 @@ def format_user_bubble(query, timestamp):
             display: flex;
             justify-content: flex-end;
             width: 100%;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             padding-right: 12%;
         }}
         </style>
@@ -62,11 +63,41 @@ def format_user_bubble(query, timestamp):
 def format_assistant_bubble(answer, timestamp, chart_key=None):
     return f"""
     <div style="display: flex; justify-content: flex-start; margin-left:12%;">
-        <div style="padding:10px;border-radius:10px;margin-bottom:10px;max-width:88%;align-self:flex-start;">
+        <div style="padding:10px;border-radius:10px;margin-bottom:5px;max-width:88%;align-self:flex-start;">
             <p style="margin:0;color: var(--text-color);">{answer}</p>
         </div>
     </div>
     """
+
+
+def format_assistant_bubble_typewrite(answer: str, typewriter: bool = False):
+    """
+    Displays the assistant's markdown-formatted response inside a styled left-aligned bubble.
+    If typewriter=True, shows the response with a typewriter animation.
+    """
+    container = st.empty()
+
+    bubble_start = """
+    <div style="display: flex; justify-content: flex-start; margin-left:10%;">
+        <div style="color: var(--text-color);padding: 5px; border-radius: 10px;
+                    margin-bottom: 5px; max-width: 88%; align-self: flex-start;">
+    """
+    bubble_end = """
+        </div>
+    </div>
+    """
+
+    if typewriter:
+        current = ""
+        for char in answer:
+            current += char
+            container.markdown(
+                bubble_start + current + bubble_end,
+                unsafe_allow_html=True,
+            )
+            time.sleep(0.007)
+    else:
+        container.markdown(bubble_start + answer + bubble_end, unsafe_allow_html=True)
 
 
 def show_agentic_chat_interface():
@@ -159,22 +190,6 @@ def show_agentic_chat_interface():
                     if show_table:
                         st.dataframe(table)
 
-        # Always show chat bubble
-        # st.markdown(entry["html"], unsafe_allow_html=True)
-
-        # # Show chart if toggle is on
-        # if chart_path and st.session_state.get(f"toggle_{chart_key}", False):
-        #     img = Image.open(chart_path).resize((512, 512))
-        #     st.image(img, caption="Generated Chart", use_container_width=False)
-
-    # Chat input
-    # prompt = st.chat_input("Ask your question...")
-    # st.markdown(
-    #     """
-    # <div style="max-width: 800px; margin: auto;">
-    # """,
-    #     unsafe_allow_html=True,
-    # )
     prompt = st.chat_input("Ask your question...")
 
     if prompt:
@@ -218,9 +233,7 @@ def show_agentic_chat_interface():
                         else None
                     )
                     assistant_html = format_assistant_bubble(
-                        answer,
-                        datetime.now().strftime("%H:%M:%S"),
-                        chart_key,
+                        answer, timestamp, chart_key
                     )
 
                     st.session_state.chat_log.append(
@@ -232,60 +245,62 @@ def show_agentic_chat_interface():
                         }
                     )
 
-                    st.markdown(assistant_html, unsafe_allow_html=True)
+                    # st.markdown(assistant_html, unsafe_allow_html=True)
+                    format_assistant_bubble_typewrite(answer, typewriter=True)
+                    col1, col2, col3 = st.columns([1, 3, 4])
+                    with col2:
+                        if chart_path and chart_key:
+                            toggle_key = f"show_chart_{chart_key}"
 
-                    if chart_path and chart_key:
-                        toggle_key = f"show_chart_{chart_key}"
+                            if toggle_key not in st.session_state:
+                                st.session_state[toggle_key] = False
 
-                        if toggle_key not in st.session_state:
-                            st.session_state[toggle_key] = False
+                            # Toggle chart visibility
+                            if st.toggle(
+                                (
+                                    "📊 Show Chart"
+                                    if not st.session_state[toggle_key]
+                                    else "❌ Hide Chart"
+                                ),
+                                key=chart_key,
+                            ):
+                                st.session_state[toggle_key] = not st.session_state[
+                                    toggle_key
+                                ]
 
-                        # Toggle chart visibility
-                        if st.toggle(
-                            (
-                                "📊 Show Chart"
-                                if not st.session_state[toggle_key]
-                                else "❌ Hide Chart"
-                            ),
-                            key=chart_key,
+                            if st.session_state[toggle_key]:
+                                img = Image.open(chart_path)
+                                st.image(
+                                    img,
+                                    caption="Generated Chart",
+                                    use_container_width=False,
+                                )
+                    with col3:
+                        if (
+                            table is not None
+                            and isinstance(table, pd.DataFrame)
+                            and not table.empty
                         ):
-                            st.session_state[toggle_key] = not st.session_state[
-                                toggle_key
-                            ]
+                            table_toggle_key = f"show_table_{chart_key}"
 
-                        if st.session_state[toggle_key]:
-                            img = Image.open(chart_path)
-                            st.image(
-                                img,
-                                caption="Generated Chart",
-                                use_container_width=False,
-                            )
+                            if table_toggle_key not in st.session_state:
+                                st.session_state[table_toggle_key] = False
 
-                    if (
-                        table is not None
-                        and isinstance(table, pd.DataFrame)
-                        and not table.empty
-                    ):
-                        table_toggle_key = f"show_table_{chart_key}"
+                            if st.toggle(
+                                (
+                                    "🧾 Show Table"
+                                    if not st.session_state[table_toggle_key]
+                                    else "❌ Hide Table"
+                                ),
+                                key=table_toggle_key + "_toggle",
+                            ):
+                                st.session_state[table_toggle_key] = (
+                                    not st.session_state[table_toggle_key]
+                                )
 
-                        if table_toggle_key not in st.session_state:
-                            st.session_state[table_toggle_key] = False
+                            if st.session_state[table_toggle_key]:
+                                st.dataframe(table)
 
-                        if st.toggle(
-                            (
-                                "🧾 Show Table"
-                                if not st.session_state[table_toggle_key]
-                                else "❌ Hide Table"
-                            ),
-                            key=table_toggle_key + "_toggle",
-                        ):
-                            st.session_state[table_toggle_key] = not st.session_state[
-                                table_toggle_key
-                            ]
-
-                        if st.session_state[table_toggle_key]:
-                            st.dataframe(table)
-    # st.markdown("</div>", unsafe_allow_html=True)
     # Auto-scroll to latest
     st.markdown(
         """
