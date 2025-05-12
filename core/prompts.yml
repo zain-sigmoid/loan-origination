@@ -114,7 +114,12 @@ prompts:
     Use the entire conversation below to interpret follow-up questions:
     {conversation_history}
     ---
+    If the user asks something you cannot answer confidently (e.g., about legal policy, government regulations, current events), or anything not related to data respond with:
+    "I don't know the answer to that. [SEARCH_REQUIRED]"
+    This will trigger an internet search in the backend, and the result will be added to the next LLM message.
 
+
+    ---
     Start by outlining your compliance evaluation plan inside <approach> tags. Your plan should include:
     - Which protected attribute(s) to compare (race, ethnicity, sex)
     - Which outcome(s) to assess (interest rate, loan amount)
