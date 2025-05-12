@@ -13,7 +13,6 @@ warnings.filterwarnings("ignore")
 from .utils import Utility
 
 load_dotenv()
-os.environ["GOOGLE_API_KEY"] = os.getenv("LLM_API_KEY")
 memory = MemorySaver()
 
 
@@ -206,12 +205,12 @@ class BI_Agent:
 
 
 class FairLendingAgent:
-    def __init__(self, llm, dataset, data_description, helper_functions=None):
+    def __init__(self, llm, tools, dataset, data_description, helper_functions=None):
         prompt_s = Utility.load_prompts()
         self.llm = llm
         self.agent_name = "Fair Lending Compliance Agent"
         self.dataset = dataset
-        # self.tools = tools
+        self.tools = tools or []
         self.data_description = data_description
         self.helper_functions = helper_functions or {}
         self.prompt = prompt_s["prompts"]["Fair_Lending_Compliance_Agent"]
@@ -242,10 +241,22 @@ class FairLendingAgent:
 
     def generate_response(self, question, history=""):
         result = self.run(question, history)
-        response = self.helper_functions["execute_analysis"].invoke(
-            {"df": self.dataset, "response_text": result.content}
-        )
-        return response
+        content = result.content
+
+        if "[SEARCH_REQUIRED]" in content:
+            # Call DuckDuckGo
+            search_snippet = self.tools[0].run(question)
+            result = {
+                "approach": "internet search",
+                "answer": search_snippet,
+                "figure": None,
+            }
+            return result
+        else:
+            # Execute analysis if applicable
+            return self.helper_functions["execute_analysis"].invoke(
+                {"df": self.dataset, "response_text": content}
+            )
 
     def __repr__(self):
         return (
@@ -383,33 +394,6 @@ class OutOfDomainAgent:
         response = self.llm.invoke(prompt_template.invoke({"question": question}))
         if "[SEARCH_REQUIRED]" in response.content:
             search_result = self.tools[0].run(question)
-            # print(search_result)
-            # format_prompt = ChatPromptTemplate.from_messages(
-            #     [
-            #         (
-            #             "system",
-            #             """You are a helpful assistant.
-            #             Summarize the following text into **clean, well-formatted bullet points** with no empty lines or broken bullets.
-
-            #             **Formatting instructions:**
-            #             - Use exactly one bullet point per idea.
-            #             - Each bullet should start with a hyphen (`-`).
-            #             - Avoid extra line breaks inside bullets.
-            #             - Combine short related facts into a single line.
-            #             - Bold key numbers, locations, or entities using Markdown (e.g., **Bengaluru**, **21.7°C**).
-            #             - Do not use colons (`:`) followed by a second bullet.
-            #             - Avoid repeating labels like "Temperature", "Humidity" unless they are part of the original sentence.
-
-            #             Here is the text:
-            #             {raw_text}""",
-            #         ),
-            #         ("human", "{raw_text}"),
-            #     ]
-            # )
-            # prompt = format_prompt.invoke({"raw_text": search_result})
-            # formatted = self.llm.invoke(prompt)
-            # # formatted_output = self.format_bullet_output(formatted.content)
-            # print(formatted)
             return AIMessage(content=search_result)
         else:
             return response
