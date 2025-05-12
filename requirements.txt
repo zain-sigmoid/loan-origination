@@ -17,3 +17,4 @@ ipython
 openpyxl
 streamlit-navigation-bar
 duckduckgo-search
+beautifulsoup4
