@@ -78,7 +78,7 @@ def format_assistant_bubble_typewrite(answer: str, typewriter: bool = False):
     container = st.empty()
 
     bubble_start = """
-    <div style="display: flex; justify-content: flex-start; margin-left:10%;">
+    <div style="display: flex; justify-content: flex-start; margin-left:12%;">
         <div style="color: var(--text-color);padding: 5px; border-radius: 10px;
                     margin-bottom: 5px; max-width: 88%; align-self: flex-start;">
     """
