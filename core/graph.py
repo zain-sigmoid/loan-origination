@@ -29,6 +29,7 @@ from langchain_core.messages import (
 
 tool = Tools()
 memory = MemorySaver()
+search_tool = DuckDuckGoSearchRun()
 
 
 class AgentState(TypedDict):
@@ -141,6 +142,7 @@ class Graph:
     def fair_agent(self, state: AgentState):
         fair_agent = FairLendingAgent(
             llm=Utility.llm(),
+            tools=[search_tool],
             data_description=self.data_description,
             dataset=self.data,
             helper_functions={"execute_analysis": execute_analysis},
@@ -250,7 +252,6 @@ class Graph:
         return response, [HumanMessage(content=message)]
 
     def ood_agent(self, state: AgentState):
-        search_tool = DuckDuckGoSearchRun()
         OODAgent = OutOfDomainAgent(llm=Utility.ood_llm(), tools=[search_tool])
         question = next(
             (
