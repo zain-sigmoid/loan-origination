@@ -7,17 +7,10 @@ import pandas as pd
 import uuid
 import time
 
+# from main import main as experimental_agent_main
+from experimental_agent.app import main as experimental_agent_main
 
-# def format_user_bubble(content, timestamp):
-#     return f"""
-#     <div style="display: flex; justify-content: flex-end; margin-bottom: 5px; padding-right:10%;">
-#         <div style="background-color: #e1f5fe; padding: 10px; border-radius: 10px;
-#                     max-width: 70%; color: black; text-align: left;">
-#             <p style="margin: 0;">{content}</p>
-#             <p style="font-size: 10px; text-align: right; color: gray; margin: 0;">{timestamp}</p>
-#         </div>
-#     </div>
-#     """
+
 def format_user_bubble(query, timestamp):
     """
     Format user message as a chat bubble on the right side of the screen
@@ -101,11 +94,9 @@ def format_assistant_bubble_typewrite(answer: str, typewriter: bool = False):
 
 
 def show_agentic_chat_interface():
-
-    if "graph_app" not in st.session_state:
-        graph = Graph()
-        app = graph.app()
-        st.session_state.graph_app = app
+    prompt = None
+    data_loaded = st.session_state.get("data_loaded", False)
+    status = "✅ Data Loaded" if data_loaded else "⏳ Loading Data..."
 
     if "chat_log" not in st.session_state:
         st.session_state.chat_log = []
@@ -119,36 +110,74 @@ def show_agentic_chat_interface():
     if "thread_id" not in st.session_state:
         st.session_state.thread_id = str(uuid.uuid4())
 
-    col1, col2 = st.columns([6, 1])
+    if "show_experimental" not in st.session_state:
+        st.session_state.show_experimental = False
+
+    if "first_prompt" not in st.session_state:
+        st.session_state.first_prompt = None
+
+    col1, col2, col3, col4 = st.columns([1.5, 3.5, 1, 1.2])
     with col1:
-        st.header("Origination Data Analytics Tool")
-    with col2:
-        st.markdown(
-            """
-        <div style="margin-top: 6px;">
-        """,
-            unsafe_allow_html=True,
+        st.button(
+            status,
+            disabled=True,
+            help="Static status of data load",
+            key="status_button",
         )
-        if st.button(
-            "🔁 Reset Chat", help="Reset Chat and Memory", use_container_width=True
-        ):
-            st.session_state.chat_log = []
-            st.session_state.message_ids = set()
-            st.session_state.charts_to_show = set()
-            st.session_state.reset_successful = False
+    with col2:
+        if not st.session_state.show_experimental and st.session_state.first_prompt:
+            st.markdown(
+                """
+        <div style='text-align:center;padding-top:-1%; margin-top:-1%;'>
+        <h3>Loan Origination Data Analytics Tool</h3>
+        </div>
+        """,
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown("""""")
+    with col3:
+        if not st.session_state.show_experimental:
+            if st.button(
+                "🔁 Reset Chat",
+                help="Reset Chat and Memory",
+                use_container_width=True,
+                key="reset_button",
+                disabled=not st.session_state.chat_log,
+            ):
+                st.session_state.chat_log = []
+                st.session_state.message_ids = set()
+                st.session_state.charts_to_show = set()
+                st.session_state.reset_successful = False
 
-            # Optional: clear memory
-            app = st.session_state.graph_app
-            if hasattr(app, "checkpointer") and app.checkpointer is not None:
-                try:
-                    app.checkpointer.delete_thread(st.session_state.thread_id)
-                    st.session_state.reset_successful = True
-                except Exception as e:
-                    st.session_state.reset_error = f" Could not clear memory: {str(e)}"
+                # Optional: clear memory
+                app = st.session_state.graph_app
+                if hasattr(app, "checkpointer") and app.checkpointer is not None:
+                    try:
+                        app.checkpointer.delete_thread(st.session_state.thread_id)
+                        st.session_state.reset_successful = True
+                    except Exception as e:
+                        st.session_state.reset_error = (
+                            f" Could not clear memory: {str(e)}"
+                        )
 
+                st.rerun()
+    with col4:
+        toggle_label = (
+            "🧪 Experimental Agent"
+            if not st.session_state.show_experimental
+            else "Origination Tool"
+        )
+        if st.button(toggle_label, key="toggle_button"):
+            st.session_state.show_experimental = not st.session_state.show_experimental
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
+    # If experimental agent is toggled, show the experimental agent interface
+    if st.session_state.show_experimental:
+        experimental_agent_main()
+        return
+
+    # st.markdown("---")
     if st.session_state.get("reset_successful"):
         st.toast("✅ Chat reset successfully.")
         st.session_state.thread_id = str(uuid.uuid4())
@@ -158,8 +187,56 @@ def show_agentic_chat_interface():
         st.toast(st.session_state.reset_error)
         del st.session_state.reset_error
 
+    if "data_loaded" not in st.session_state or not st.session_state.data_loaded:
+        st.markdown(
+            '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            """
+            <style>
+                .loading-box {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 50vh;
+                    margin-top:-10px;
+                }
+
+                .loading-card {
+                    background-color: #ffffff;
+                    padding: 40px 60px;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                    font-size: 22px;
+                    font-weight: 500;
+                    color: #0A2540;
+                    text-align: center;
+                }
+            </style>
+            <div class="loading-box">
+                <div class="loading-card">
+                    <p><span class="spinner-border me-2"></span> Loading data... Please wait</p>
+                    <p style="font-size:14px; margin-top:-1%;">Home Mortgage Disclosure Act</p>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        from core.data_loader import Data
+
+        st.session_state.data = Data()
+        st.session_state.data_loaded = True
+        st.rerun()
+
+    if "graph_app" not in st.session_state:
+        graph = Graph()
+        app = graph.app()
+        st.session_state.graph_app = app
+
     # Render chat history
-    if "chat_log" in st.session_state:
+    if "chat_log" in st.session_state and st.session_state.chat_log:
         for entry in st.session_state.chat_log:
             st.markdown(entry["html"], unsafe_allow_html=True)
 
@@ -189,16 +266,69 @@ def show_agentic_chat_interface():
                     show_table = st.toggle("🧾 Show Table", key=table_toggle_key)
                     if show_table:
                         st.dataframe(table)
+        st.markdown(
+            """
+                <style>
+                    .stChatInput {
+                    width: 100%;
+                    max-width: 950px;
+                    margin: 0 auto;
+                    }
+                </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        prompt = st.chat_input("Ask your question...")
 
-    prompt = st.chat_input("Ask your question...")
+    elif st.session_state.first_prompt is None:
+        # --- Centered Input Prompt (when chat is empty) ---
+        st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True)
+        st.markdown(
+            """
+        <div style='text-align: center;margin-bottom:4%;'>
+        <h2>Lending Risk Analysis and Approval Prediction</h2>
+        <h4 style="color:gray; margin-top:-10px;">Origination Data Analytics Tool</h4></div>
+        """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<div style='text-align: center; font-size: 20px; color: gray; margin-top:-10px;'>What I can help with 👇</div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            """
+            <style>
+            .stTextInput {
+                width: 100%;
+                max-width: 600px;
+                margin: 0 auto;
+            }
+            .stTextInput input {
+                font-size: 18px;
+                padding: 20px;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        first_prompt = st.text_input(
+            "Ask your question...", placeholder="Type your question here..."
+        )
+        if first_prompt:
+            # Store and force UI shift to st.chat_input
+            st.session_state.first_prompt = first_prompt
+            st.session_state.chat_log.append({"html": ""})
+            st.rerun()
 
+    prompt = st.session_state.get("first_prompt") or prompt
     if prompt:
+        first_prompt = st.session_state.get("first_prompt")
         timestamp = datetime.now().strftime("%H:%M:%S")
         user_html = format_user_bubble(prompt, timestamp)
         st.session_state.chat_log.append({"html": user_html})
         st.markdown(user_html, unsafe_allow_html=True)
+        st.session_state.first_prompt = None
 
-        # LangGraph execution
         with st.spinner("Analysing..."):
             app = st.session_state.graph_app
             state = {
@@ -214,19 +344,19 @@ def show_agentic_chat_interface():
                 node_name = list(step.keys())[0]
                 node_data = step[node_name]
                 agent_response = node_data.get("agent_response", {})
-                # st.write(agent_response)
                 if agent_response and not shown_agent_response:
                     shown_agent_response = True
                     answer = agent_response.get("answer", "")
-                    approach = agent_response.get("approach", "")
                     chart_path = agent_response.get("figure")
-                    # st.write(agent_response)
                     table = agent_response.get("table")
+
                     if agent_response.get("error"):
                         st.error(f"⚠️ Error: {agent_response.get('answer')}")
                         break
+
                     if table is not None and isinstance(table, dict):
                         table = pd.DataFrame.from_dict(table)
+
                     chart_key = (
                         f"chart_{len(st.session_state.chat_log)}"
                         if chart_path
@@ -245,17 +375,15 @@ def show_agentic_chat_interface():
                         }
                     )
 
-                    # st.markdown(assistant_html, unsafe_allow_html=True)
                     format_assistant_bubble_typewrite(answer, typewriter=True)
+
                     col1, col2, col3 = st.columns([1, 3, 4])
+
                     with col2:
                         if chart_path and chart_key:
                             toggle_key = f"show_chart_{chart_key}"
-
                             if toggle_key not in st.session_state:
                                 st.session_state[toggle_key] = False
-
-                            # Toggle chart visibility
                             if st.toggle(
                                 (
                                     "📊 Show Chart"
@@ -267,7 +395,6 @@ def show_agentic_chat_interface():
                                 st.session_state[toggle_key] = not st.session_state[
                                     toggle_key
                                 ]
-
                             if st.session_state[toggle_key]:
                                 img = Image.open(chart_path)
                                 st.image(
@@ -275,6 +402,7 @@ def show_agentic_chat_interface():
                                     caption="Generated Chart",
                                     use_container_width=False,
                                 )
+
                     with col3:
                         if (
                             table is not None
@@ -282,10 +410,8 @@ def show_agentic_chat_interface():
                             and not table.empty
                         ):
                             table_toggle_key = f"show_table_{chart_key}"
-
                             if table_toggle_key not in st.session_state:
                                 st.session_state[table_toggle_key] = False
-
                             if st.toggle(
                                 (
                                     "🧾 Show Table"
@@ -297,7 +423,6 @@ def show_agentic_chat_interface():
                                 st.session_state[table_toggle_key] = (
                                     not st.session_state[table_toggle_key]
                                 )
-
                             if st.session_state[table_toggle_key]:
                                 st.dataframe(table)
 
