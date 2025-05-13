@@ -1,0 +1,4 @@
+ffmpeg
+poppler-utils
+tesseract-ocr
+libgl1
