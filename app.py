@@ -19,5 +19,7 @@ try:
     show_agentic_chat_interface()
 except Exception as e:
     print(f"Error in chat interface: {e}")
-    st.error("⚠️ An unexpected error occurred. Please try again.")
-    st.expander("Error Details").markdown(f"```{str(e)}```")
+    st.error(
+        "⚠️ An unexpected error occurred. Please try again. If issue persist, try clearing the Chat"
+    )
+    # st.expander("Error Details").markdown(f"```{str(e)}```")

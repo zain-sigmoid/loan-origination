@@ -21,6 +21,7 @@ from datetime import datetime
 
 # Apply nest_asyncio to allow nested event loops
 nest_asyncio.apply()
+os.environ["STREAMLIT_WATCH_USE_POLLING"] = "true"
 
 
 def extract_images_from_pdf(pdf_file):
