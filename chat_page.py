@@ -262,7 +262,9 @@ def show_agentic_chat_interface():
                     and isinstance(table, pd.DataFrame)
                     and not table.empty
                 ):
-                    table_toggle_key = f"show_table_{chart_key}"
+                    chart_key_safe = chart_key or str(uuid.uuid4())
+                    table_toggle_key = f"show_table_{chart_key_safe}"
+                    # table_toggle_key = f"show_table_{chart_key}"
                     show_table = st.toggle("🧾 Show Table", key=table_toggle_key)
                     if show_table:
                         st.dataframe(table)
@@ -349,7 +351,7 @@ def show_agentic_chat_interface():
                     answer = agent_response.get("answer", "")
                     chart_path = agent_response.get("figure")
                     table = agent_response.get("table")
-
+                    # st.write(agent_response)
                     if agent_response.get("error"):
                         st.error(f"⚠️ Error: {agent_response.get('answer')}")
                         break
