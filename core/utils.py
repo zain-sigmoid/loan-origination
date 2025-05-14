@@ -198,6 +198,7 @@ answer_text = f'''{safe_answer}'''
                     r"^```(?:python)?\s*", "", raw_chart_code.strip()
                 )
                 raw_chart_code = re.sub(r"```$", "", raw_chart_code)
+            raw_chart_code = re.sub(r"</?(code|pre)>", "", raw_chart_code.strip())
             chart_code = tools._dedent_code(raw_chart_code)
             chart_code = "\n".join(
                 line for line in chart_code.split("\n") if "plt.show" not in line
