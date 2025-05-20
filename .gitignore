@@ -1,6 +1,7 @@
 
 plots/
-
+data/morigination.xlsx
+data/origination_feats.csv
 .devcontainer/
 # Byte-compiled / optimized / DLL files
 __pycache__/
