@@ -21,7 +21,6 @@ from datetime import datetime
 
 # Apply nest_asyncio to allow nested event loops
 nest_asyncio.apply()
-os.environ["STREAMLIT_WATCH_USE_POLLING"] = "true"
 
 
 def extract_images_from_pdf(pdf_file):
@@ -547,35 +546,6 @@ def main():
                 "jpg",
                 "jpeg",
                 "png",
-                "py",
-                "js",
-                "jsx",
-                "ts",
-                "tsx",
-                "java",
-                "cpp",
-                "c",
-                "cs",
-                "php",
-                "rb",
-                "go",
-                "rs",
-                "swift",
-                "kt",
-                "scala",
-                "html",
-                "css",
-                "sql",
-                "sh",
-                "md",
-                "json",
-                "xml",
-                "yaml",
-                "yml",
-                "toml",
-                "ini",
-                "env",
-                "ipynb",
                 "wav",
                 "mp3",
                 "ogg",
@@ -647,6 +617,18 @@ def main():
 
         # Only process content when the button is clicked
         if process_button:
+            # Reset all chat-related session state
+            st.session_state.chat_history = []
+            if 'messages' in st.session_state:
+                del st.session_state.messages
+            if 'preview_states' in st.session_state:
+                del st.session_state.preview_states
+            if 'first_prompt' in st.session_state:
+                st.session_state.first_prompt = None
+            
+            # Clear any existing chat interface elements
+            st.empty()
+            
             with st.spinner("Processing..."):
                 all_text = ""
 
@@ -726,8 +708,6 @@ def main():
         else:
             assistant_html = format_assistant_bubble(message["content"], timestamp)
             st.markdown(assistant_html, unsafe_allow_html=True)
-            if "model_used" in message:
-                st.caption(f"Model used: {message['model_used']}")
             if "audio" in message:
                 st.audio(message["audio"])
 
@@ -908,7 +888,7 @@ def main():
                                         and "transcribe" not in operations
                                     ):
                                         st.audio(processed_audio.export().read())
-                                    st.caption(f"Model used: {model_config['model']}")
+                                    
 
                                     # Clean up temporary file
                                     os.unlink(temp_wav.name)
@@ -928,11 +908,12 @@ def main():
                         response = f"Error processing audio: {str(e)}"
                 else:
                     # Process regular queries
-                    response = asyncio.run(
-                        st.session_state.agent.process_user_input_async(
-                            user_question, recent_file_info
+                    with st.spinner("Analyzing..."):
+                        response = asyncio.run(
+                            st.session_state.agent.process_user_input_async(
+                                user_question, recent_file_info
+                            )
                         )
-                    )
 
                 # Add response to chat history
                 st.session_state.chat_history.append(
@@ -946,7 +927,7 @@ def main():
                 # Display response with styled bubble
                 assistant_html = format_assistant_bubble(response, timestamp)
                 st.markdown(assistant_html, unsafe_allow_html=True)
-                st.caption(f"Model used: {model_config['model']}")
+                
 
                 st.rerun()
             except Exception as e:

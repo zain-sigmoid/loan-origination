@@ -43,3 +43,5 @@ soundfile
 SpeechRecognition==3.10.1
 tqdm
 typing-extensions
+langchain_tavily
+langchain_exa

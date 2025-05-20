@@ -7,10 +7,11 @@ from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema import HumanMessage
 from langchain_core.messages import AIMessage
+from termcolor import colored
 
 
 warnings.filterwarnings("ignore")
-from .utils import Utility
+from .utils import Utility, Formatting
 
 load_dotenv()
 memory = MemorySaver()
@@ -74,11 +75,9 @@ class Supervisor:
             "name": "route",
             "description": "Select the next agent based on the user's intent.",
             "parameters": {
-                "title": "RouteSchema",
                 "type": "object",
                 "properties": {
                     "next": {
-                        "title": "Next",
                         "type": "string",
                         "enum": options,
                         "description": "The agent to handle the next step in the conversation.",
@@ -108,7 +107,9 @@ class Supervisor:
 
 
 class BI_Agent:
-    def __init__(self, llm, tools, dataset, data_description, helper_functions=None):
+    def __init__(
+        self, llm, tools, dataset, data_description, data_sample, helper_functions=None
+    ):
         """
         Initialize the Agent.
 
@@ -119,14 +120,15 @@ class BI_Agent:
             dataset (pd.DataFrame): Data the agent will work with.
             helper_functions (dict): Optional dictionary of helper functions.
         """
-        prompt_s = Utility.load_prompts()
+        self.prompt_s = Utility.load_prompts()
         self.llm = llm
         # self.agent_name = agent_name
         self.tools = tools
         self.dataset = dataset
         self.helper_functions = helper_functions or {}
-        self.prompt = prompt_s["prompts"]["BI_Agent"]
+        self.prompt = self.prompt_s["prompts"]["BI_Agent"]
         self.data_description = data_description
+        self.data_sample = data_sample
 
     def add_helper_function(self, name, func):
         """
@@ -162,6 +164,7 @@ class BI_Agent:
             prompt_template.invoke(
                 {
                     "data_description": self.data_description,
+                    "data_sample": self.data_sample,
                     "question": question,
                     "messages": [HumanMessage(content=question)],
                     "conversation_history": self.format_messages(history),
@@ -180,14 +183,22 @@ class BI_Agent:
             str or dict: Output from helper function (e.g., executed analysis).
         """
         llm_response = self.run(question, history)
-        # if "execute_analysis" in self.helper_functions:
-        #     return self.helper_functions["execute_analysis"](
-        #         df=self.dataset, response_text=llm_response.content
-        #     )
+        # print(llm_response)
+        print(colored("inside bi agent class", "green"))
         response = self.helper_functions["execute_analysis"].invoke(
             {"df": self.dataset, "response_text": llm_response.content}
         )
         return response
+        # if response.get("error"):
+        #     # here we can call llm when there is error, else we can format as of now returning response
+        #     return response
+        # else:
+        #     print(colored("formatting", "cyan"))
+        #     formatting_prompt = self.prompt_s["prompts"]["Formatting_Prompt"]
+        #     formatted_response = Formatting.format_response(
+        #         prompt=formatting_prompt, response=response, llm=self.llm
+        #     )
+        #     return formatted_response
 
     #
     # else:
@@ -245,10 +256,14 @@ class FairLendingAgent:
 
         if "[SEARCH_REQUIRED]" in content:
             # Call DuckDuckGo
-            search_snippet = self.tools[0].run(question)
+            try:
+                search_result = self.tools._run(question)
+            except Exception as e:
+                print(f"Error in search: {e}")
+                search_result = "This question is out of domain. Please ask a question related to mortgage data analysis. I am unable results at this time."
             result = {
                 "approach": "internet search",
-                "answer": search_snippet,
+                "answer": search_result,
                 "figure": None,
             }
             return result
@@ -393,7 +408,11 @@ class OutOfDomainAgent:
         )
         response = self.llm.invoke(prompt_template.invoke({"question": question}))
         if "[SEARCH_REQUIRED]" in response.content:
-            search_result = self.tools[0].run(question)
+            try:
+                search_result = self.tools._run(question)
+            except Exception as e:
+                print(f"Error in search: {e}")
+                search_result = "This question is out of domain. Please ask a question related to mortgage data analysis. I am unable results at this time."
             return AIMessage(content=search_result)
         else:
             return response

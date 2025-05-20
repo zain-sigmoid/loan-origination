@@ -6,11 +6,14 @@ from IPython.display import display, Image
 import re
 import uuid
 import yaml
+import ast
 from dotenv import load_dotenv
-
+from termcolor import colored
+import traceback
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import tool
 import warnings
 
@@ -28,12 +31,19 @@ class Utility:
         with open(full_path, "r") as f:
             return yaml.safe_load(f)
 
+    def load_config(filepath="config.yml"):
+        base_path = os.path.dirname(__file__)  # folder where utils.py is
+        full_path = os.path.join(base_path, filepath)
+        with open(full_path, "r") as f:
+            return yaml.safe_load(f)
+
     def llm():
         try:
             # llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0, convert_system_message_to_human=True)
             llm = ChatGoogleGenerativeAI(
                 model="gemini-2.0-flash",  # Using flash for potentially faster responses
-                temperature=0,
+                # model="gemini-1.5-pro",
+                temperature=0.2,
                 convert_system_message_to_human=True,  # Important for some models
             )
             return llm
@@ -48,7 +58,7 @@ class Utility:
         try:
             ood_llm = ChatGoogleGenerativeAI(
                 model="gemini-1.5-flash",  # Using flash for potentially faster responses
-                temperature=0,
+                temperature=0.5,
                 convert_system_message_to_human=True,  # Important for some models
             )
             return ood_llm
@@ -117,6 +127,25 @@ class Tools:
         return "\n".join(line[min_indent:] if line.strip() else "" for line in lines)
 
 
+class Formatting:
+    def format_response(prompt, response, llm):
+        try:
+            FORMATTER_PROMPT = PromptTemplate.from_template(prompt)
+            formatted_response = llm.invoke(
+                FORMATTER_PROMPT.format(response_dict=response)
+            )
+            respons = formatted_response.content
+            cleaned = re.sub(r"^```(?:python)?\s*", "", respons.strip())
+            cleaned = re.sub(r"```$", "", cleaned.strip())
+
+            # Safely evaluate to a dictionary
+            ans = ast.literal_eval(cleaned)
+            return ans
+        except Exception as e:
+            print(str(e))
+            return response
+
+
 @tool
 def execute_analysis(df, response_text):
     """
@@ -130,8 +159,7 @@ def execute_analysis(df, response_text):
         dict: A dictionary with keys: 'approach', 'answer', 'figure', 'code', 'chart_code'
     """
     tools = Tools()
-    ans_generated = False
-    chart_generated = False
+    print(colored("inside bi execute analysis", "cyan"))
     results = {
         "approach": None,
         "answer": None,
@@ -144,25 +172,32 @@ def execute_analysis(df, response_text):
         segments = tools.extract_code_segments(response_text)
         if not segments:
             print("No segments extracted.")
+            results["answer"] = (
+                "⚠️ Sorry, I couldn't extract any analysis from the response."
+            )
+            results["error"] = True
             return results
 
         # Store textual segments
-        results = {
-            "approach": segments.get("approach", "No approach provided."),
-            "code": segments.get("code", ""),
-            "chart_code": segments.get("chart", ""),
-            "answer": None,
-            "figure": None,
-            "table": None,
-            "error": False,
-        }
+        results.update(
+            {
+                "approach": segments.get("approach", "No approach provided."),
+                "code": segments.get("code", ""),
+                "chart_code": segments.get("chart", ""),
+                "answer": segments.get("answer", ""),
+            }
+        )
 
         # Setup a shared namespace
         namespace = {"df": df.copy(), "pd": pd, "plt": plt, "sns": sns}
+        success = True
+        error_val = ""
 
         # === Execute Analysis Code + Compute Answer ===
         if "code" in segments and "answer" in segments:
-            code = tools._dedent_code(segments["code"])
+            raw_code = segments["code"]
+            raw_code = re.sub(r"^```(?:python)?\s*", "", raw_code.strip())
+            code = tools._dedent_code(raw_code)
             # code += f"\n\nanswer_text = f'''{segments['answer']}'''"
             safe_answer = re.sub(r"\{\s*\}", "[missing value]", segments["answer"])
             combined_code = f"""
@@ -173,9 +208,8 @@ answer_text = f'''{safe_answer}'''
 """
             try:
                 exec(combined_code, namespace)
-                ans_generated = True
                 results["answer"] = namespace.get(
-                    "answer_text", "Answer could not be computed."
+                    "answer_text", "Sorry!, No specific answer was generated."
                 )
                 # results["output_df"] = namespace.get("output_df")
                 if "output_df" in namespace:
@@ -185,10 +219,12 @@ answer_text = f'''{safe_answer}'''
                     if isinstance(df, pd.DataFrame):
                         results["table"] = df
             except Exception as e:
-                ans_generated = False
-                results["answer"] = (
-                    f"There was an error in executing the code. {str(e)}"
+                print(
+                    colored("Code execution failed:", "light_red"),
+                    traceback.format_exc(),
                 )
+                success = False
+                error_val = str(e)
 
         # === Execute Chart Code and Save Plot ===
         if "chart" in segments and "no chart" not in segments["chart"].lower():
@@ -211,40 +247,36 @@ answer_text = f'''{safe_answer}'''
             try:
                 exec(chart_code, namespace)
                 results["figure"] = plot_path
-                chart_generated = True
             except Exception as e:
-                chart_generated = False
-                results["figure"] = ""
+                print(
+                    colored("Chart generation failed:", "light_red"),
+                    traceback.format_exc(),
+                )
+                success = False
+                error_val = str(e)
+
+        if not success:
+            results["answer"] = (
+                f"⚠️ Something went wrong while analyzing the data. Please try again or rephrase your question."
+            )
+            results["error"] = True
+            results["figure"] = None
+            results["table"] = None
+            results["error_val"] = error_val
 
         return results
 
     except Exception as e:
-        error_msg = f"[Agent Execution Error] {str(e)}"
-        print(error_msg)
-        if not chart_generated and not ans_generated:
-            return {
-                "approach": "Error occurred during analysis.",
-                "answer": "An Error Occurred during analysis, Please try again.",
-                "figure": None,
-                "code": str(e),
-                "chart_code": None,
-                "error": True,
-            }
-        elif ans_generated and not chart_generated:
-            return {
-                "approach": results["approach"],
-                "answer": results["answer"],
-                "figure": None,
-                "code": results["code"],
-                "chart_code": results["chart_code"],
-            }
-        elif chart_generated and not ans_generated:
-            return {
-                "approach": results["approach"],
-                "answer": "The chart was generated successfully, but no textual answer could be computed.",
-                "figure": results["figure"],
-                "code": results["code"],
-                "chart_code": results["chart_code"],
-            }
-        else:
-            return results
+        print(
+            colored("Critical failure in execute_analysis:", "red"),
+            traceback.format_exc(),
+        )
+        return {
+            "approach": "Error occurred during analysis.",
+            "answer": "⚠️ There was a problem while processing your request. Please try again.",
+            "figure": None,
+            "code": str(e),
+            "chart_code": None,
+            "error": True,
+            "error_val": str(e),
+        }

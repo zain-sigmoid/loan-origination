@@ -6,6 +6,8 @@ from core.graph import Graph
 import pandas as pd
 import uuid
 import time
+import html
+from termcolor import colored
 
 # from main import main as experimental_agent_main
 from experimental_agent.app import main as experimental_agent_main
@@ -21,6 +23,13 @@ def format_user_bubble(query, timestamp):
     Returns:
         None (displays the message directly using st.markdown)
     """
+    query = query.strip()
+
+    # Escape HTML entities to prevent injection
+    query = html.escape(query)
+
+    # Convert line breaks to <br> for display
+    query = query.replace("\n", "<br>")
     return f"""
         <style>
         .user-bubble {{
@@ -288,8 +297,7 @@ def show_agentic_chat_interface():
         st.markdown(
             """
         <div style='text-align: center;margin-bottom:4%;'>
-        <h2>Lending Risk Analysis and Approval Prediction</h2>
-        <h4 style="color:gray; margin-top:-10px;">Origination Data Analytics Tool</h4></div>
+        <h2>Origination Data Analytics Tool</h2></div>
         """,
             unsafe_allow_html=True,
         )
@@ -302,12 +310,13 @@ def show_agentic_chat_interface():
             <style>
             .stTextInput {
                 width: 100%;
-                max-width: 600px;
+                max-width: 650px;
                 margin: 0 auto;
             }
             .stTextInput input {
                 font-size: 18px;
-                padding: 20px;
+                padding-top: 20px;
+                padding-bottom:30px;
             }
             </style>
             """,
@@ -316,6 +325,7 @@ def show_agentic_chat_interface():
         first_prompt = st.text_input(
             "Ask your question...", placeholder="Type your question here..."
         )
+
         if first_prompt:
             # Store and force UI shift to st.chat_input
             st.session_state.first_prompt = first_prompt
@@ -345,6 +355,7 @@ def show_agentic_chat_interface():
             for step in stream:
                 node_name = list(step.keys())[0]
                 node_data = step[node_name]
+                print(colored("inside step", "light_red"), node_name)
                 agent_response = node_data.get("agent_response", {})
                 if agent_response and not shown_agent_response:
                     shown_agent_response = True
@@ -352,9 +363,21 @@ def show_agentic_chat_interface():
                     chart_path = agent_response.get("figure")
                     table = agent_response.get("table")
                     # st.write(agent_response)
-                    if agent_response.get("error"):
-                        st.error(f"⚠️ Error: {agent_response.get('answer')}")
-                        break
+                    # if agent_response.get("error"):
+                    #     st.markdown(
+                    #         """
+                    #         <style>
+                    #             .stError {
+                    #                 width: 100%;
+                    #                 max-width: 950px;
+                    #                 margin: 0 auto;
+                    #             }
+                    #         </style>
+                    #     """,
+                    #         unsafe_allow_html=True,
+                    #     )
+                    #     st.error(f"{agent_response.get('answer')}")
+                    #     break
 
                     if table is not None and isinstance(table, dict):
                         table = pd.DataFrame.from_dict(table)
@@ -376,11 +399,11 @@ def show_agentic_chat_interface():
                             "table": table,
                         }
                     )
-
+                    # print("formatting response")
                     format_assistant_bubble_typewrite(answer, typewriter=True)
 
                     col1, col2, col3 = st.columns([1, 3, 4])
-
+                    # print(" chart")
                     with col2:
                         if chart_path and chart_key:
                             toggle_key = f"show_chart_{chart_key}"
@@ -404,7 +427,7 @@ def show_agentic_chat_interface():
                                     caption="Generated Chart",
                                     use_container_width=False,
                                 )
-
+                    # print("table")
                     with col3:
                         if (
                             table is not None

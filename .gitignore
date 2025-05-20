@@ -34,3 +34,5 @@ env/
 htmlcov/
 .coverage
 *.log
+origination.ipynb
+extra.txt

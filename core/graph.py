@@ -1,11 +1,9 @@
-from langgraph.graph import StateGraph, END
+from langgraph.graph import StateGraph
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.message import add_messages
 import streamlit as st
 import pandas as pd
 from typing import TypedDict, Optional
-from PIL import Image
-from io import BytesIO
 from termcolor import colored
 from .agents import (
     Supervisor,
@@ -17,8 +15,10 @@ from .agents import (
 )
 from langchain.tools import DuckDuckGoSearchRun
 from .utils import Utility, Helper, Tools, execute_analysis
-
-# from .tools import get_schema_inf
+from langchain_tavily import TavilySearch
+from langchain_community.utilities import GoogleSerperAPIWrapper
+from exa_py import Exa
+from .tools import ResilientSearchTool
 import functools
 from typing import TypedDict, Annotated, List
 from langchain_core.messages import (
@@ -26,10 +26,25 @@ from langchain_core.messages import (
     HumanMessage,
     AIMessage,
 )
+import os
 
-tool = Tools()
+try:
+    os.environ["TAVILY_API_KEY"] = os.getenv("TAVILY_API")
+    SERP_API = os.getenv("SERP_API")
+    EXA_API = os.getenv("EXA_API")
+    tool = Tools()
+    duckduckgo = DuckDuckGoSearchRun()
+    tavily = TavilySearch(max_results=2, topic="general")
+    serp = GoogleSerperAPIWrapper(serper_api_key=SERP_API)
+    exa = Exa(api_key=EXA_API)
+    resilient_search = ResilientSearchTool(
+        duckduckgo=duckduckgo, tavily=tavily, serp=serp, exa=exa
+    )
+except Exception as e:
+    st.error("⚠️ An unexpected error occurred.")
+
 memory = MemorySaver()
-search_tool = DuckDuckGoSearchRun()
+max_retry = Utility.load_config()
 
 
 class AgentState(TypedDict):
@@ -44,6 +59,7 @@ class Graph:
     def __init__(self):
         self.data = None
         self.data_description = None
+        self.data_sample = None
 
     def supervisor_node(self, state: AgentState):
         hop_count = state.get("hop_count", 0) + 1
@@ -106,6 +122,7 @@ class Graph:
             # prompt=bi_agent_prompt,
             tools=[],
             data_description=self.data_description,
+            data_sample=self.data_sample,
             dataset=self.data,
             helper_functions={"execute_analysis": execute_analysis},
         )
@@ -118,7 +135,39 @@ class Graph:
             "",
         )
         history = state["messages"]
+        max_retries = max_retry["llm"]["max_retry"]
+        retry_no = 0
+        print(colored("inside bi_agent", "yellow"))
         response = BIAgent.generate_response(question, history=history)
+
+        while retry_no < max_retries:
+            # Check if both are generated
+            success = response.get("error")
+            print(colored(f"Retry Count : {retry_no}", "red"))
+
+            if not success:
+                break
+            print("ERROR", response.get("answer"))
+            # Retry only for missing parts
+            # retry_needed = not (success)
+            # if not retry_needed:
+            #     break
+
+            retry_no += 1
+            response = BIAgent.generate_response(question, history=history)
+
+            # Update only the missing parts
+            # if not answer_generated and retry_response.get("answer_generated", False):
+            #     response["answer"] = retry_response["answer"]
+            #     response["answer_generated"] = True
+            #     answer_generated = True
+
+            # if not chart_generated and retry_response.get("chart_generated", False):
+            #     print("ENTERED CHART GENERATED : ")
+            #     response["figure"] = retry_response.get("figure")
+            #     response["chart"] = retry_response.get("chart")
+            #     response["chart_generated"] = True
+            #     chart_generated = True
 
         if response.get("figure"):
             print("got some figure here", response["figure"])
@@ -130,19 +179,19 @@ class Graph:
 
             # Helper.display_saved_plot(response["figure"])
         if "table" in response and isinstance(response["table"], pd.DataFrame):
+            print(colored("table found", "red"))
             response["table"] = response["table"].to_dict()
 
-        message = (
-            response["approach"]
-            + "\n\nSolution we got from this approach is:\n"
-            + response["answer"]
-        )
+        approach = response.get("approach") or "[No approach provided]"
+        answer = response.get("answer") or "[No answer returned]"
+
+        message = approach + "\n\nSolution we got from this approach is:\n" + answer
         return response, [HumanMessage(content=message)]
 
     def fair_agent(self, state: AgentState):
         fair_agent = FairLendingAgent(
             llm=Utility.llm(),
-            tools=[search_tool],
+            tools=resilient_search,
             data_description=self.data_description,
             dataset=self.data,
             helper_functions={"execute_analysis": execute_analysis},
@@ -156,7 +205,24 @@ class Graph:
             "",
         )
         history = state["messages"]
+        max_retries = max_retry["llm"]["max_retry"]
+        retry_no = 0
         response = fair_agent.generate_response(question, history=history)
+        while retry_no < max_retries:
+            # Check if both are generated
+            success = response.get("error")
+            print(colored(f"Retry Count : {retry_no}", "red"))
+
+            if not success:
+                break
+            print("ERROR", response.get("answer"))
+            # Retry only for missing parts
+            # retry_needed = not (success)
+            # if not retry_needed:
+            #     break
+
+            retry_no += 1
+            response = fair_agent.generate_response(question, history=history)
 
         if response.get("figure"):
             Helper.display_saved_plot(response["figure"])
@@ -170,11 +236,10 @@ class Graph:
         if "table" in response and isinstance(response["table"], pd.DataFrame):
             response["table"] = response["table"].to_dict()
 
-        message = (
-            response["approach"]
-            + "\n\nSolution we got from this approach is:\n"
-            + response["answer"]
-        )
+        approach = response.get("approach") or "[No approach provided]"
+        answer = response.get("answer") or "[No answer returned]"
+
+        message = approach + "\n\nSolution we got from this approach is:\n" + answer
         return response, [HumanMessage(content=message)]
 
     def risk_agent(self, state: AgentState):
@@ -193,7 +258,25 @@ class Graph:
             "",
         )
         history = state["messages"]
+        max_retries = 3
+        retry_no = 0
         response = risk_agent.generate_response(question, history=history)
+
+        while retry_no < max_retries:
+            # Check if both are generated
+            success = response.get("error")
+            print(colored(f"Retry Count : {retry_no}", "red"))
+
+            if not success:
+                break
+            print("ERROR", response.get("answer"))
+            # Retry only for missing parts
+            # retry_needed = not (success)
+            # if not retry_needed:
+            #     break
+
+            retry_no += 1
+            response = risk_agent.generate_response(question, history=history)
 
         if response.get("error"):
             return response, [
@@ -207,11 +290,10 @@ class Graph:
         if response.get("figure"):
             Helper.display_saved_plot(response["figure"])
 
-        message = (
-            response["approach"]
-            + "\n\nSolution we got from this approach is:\n"
-            + response["answer"]
-        )
+        approach = response.get("approach") or "[No approach provided]"
+        answer = response.get("answer") or "[No answer returned]"
+
+        message = approach + "\n\nSolution we got from this approach is:\n" + answer
         return response, [HumanMessage(content=message)]
 
     def general_agent(self, state: AgentState):
@@ -230,7 +312,24 @@ class Graph:
             "",
         )
         history = state["messages"]
+        max_retries = 3
+        retry_no = 0
         response = gen_agent.generate_response(question, history=history)
+        while retry_no < max_retries:
+            # Check if both are generated
+            success = response.get("error")
+            print(colored(f"Retry Count : {retry_no}", "red"))
+
+            if not success:
+                break
+            print("ERROR", response.get("answer"))
+            # Retry only for missing parts
+            # retry_needed = not (success)
+            # if not retry_needed:
+            #     break
+
+            retry_no += 1
+            response = gen_agent.generate_response(question, history=history)
 
         if response.get("figure"):
             Helper.display_saved_plot(response["figure"])
@@ -244,15 +343,14 @@ class Graph:
         if "table" in response and isinstance(response["table"], pd.DataFrame):
             response["table"] = response["table"].to_dict()
 
-        message = (
-            response["approach"]
-            + "\n\nSolution we got from this approach is:\n"
-            + response["answer"]
-        )
+        approach = response.get("approach") or "[No approach provided]"
+        answer = response.get("answer") or "[No answer returned]"
+
+        message = approach + "\n\nSolution we got from this approach is:\n" + answer
         return response, [HumanMessage(content=message)]
 
     def ood_agent(self, state: AgentState):
-        OODAgent = OutOfDomainAgent(llm=Utility.ood_llm(), tools=[search_tool])
+        OODAgent = OutOfDomainAgent(llm=Utility.ood_llm(), tools=resilient_search)
         question = next(
             (
                 m.content
@@ -333,13 +431,14 @@ class Graph:
     def app(
         self,
     ):
+        print("creating graph")
         data_loader = st.session_state.data
         self.data = data_loader.data
         data_dictionary = data_loader.format_schema_from_excel(
             data_loader.data_description
         )
         self.data_description = data_dictionary
-
+        self.data_sample = data_loader.data_sample
         # Build and compile the graph
         graph = self.build()
         app = graph.compile(checkpointer=memory)

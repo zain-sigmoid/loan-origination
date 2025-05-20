@@ -1,11 +1,11 @@
 mapping_id,filed_name,description,data_type,values
-1,activity_year,The calendar year the data submission covers,categorical,"2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024"
-2,lei,A financial institution's Legal Entity Identifier,categorical,"Varying values (e.g., ...)"
-3,derived_msa-md,"The 5 digit derived MSA (metropolitan statistical area) or MD (metropolitan division) code. An MSA/MD is an area that has at least one urbanized area of 50,000 or more population.",categorical,Varying values
-4,state_code,Two-letter state code,categorical,Varying values
-5,county_code,State-county FIPS code,categorical,Varying values
-6,census_tract,11 digit census tract number,categorical,Varying values
-7,derived_loan_product_type,Derived loan product type from Loan Type and Lien Status fields for easier querying of specific records,categoricaL,"Conventional: First Lien, FHA: First Lien, VA: First Lien, FSA/RHS: First Lien, Conventional: Subordinate Lien, FHA: Subordinate Lien, VA: Subordinate Lien, FSA/RHS: Subordinate Lien"
+1,activity_year,The calendar year the data submission covers,Categorical,"2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024"
+2,lei,A financial institution's Legal Entity Identifier,Categorical,"Varying values (e.g., ...)"
+3,derived_msa-md,"The 5 digit derived MSA (metropolitan statistical area) or MD (metropolitan division) code. An MSA/MD is an area that has at least one urbanized area of 50,000 or more population.",Categorical,Varying values
+4,state_code,Two-letter state code,Categorical,Varying values
+5,county_code,State-county FIPS code,Categorical,Varying values
+6,census_tract,11 digit census tract number,Categorical,Varying values
+7,derived_loan_product_type,Derived loan product type from Loan Type and Lien Status fields for easier querying of specific records,Categorical,"Conventional: First Lien, FHA: First Lien, VA: First Lien, FSA/RHS: First Lien, Conventional: Subordinate Lien, FHA: Subordinate Lien, VA: Subordinate Lien, FSA/RHS: Subordinate Lien"
 8,derived_dwelling_category,Derived dwelling type from Construction Method and Total Units fields for easier querying of specific records,Categorical,"Single Family (1-4 Units): Site-Built, Multifamily: Site-Built (5+ Units), Single Family (1-4 Units): Manufactured, Multifamily: Manufactured (5+ Units)"
 9,conforming_loan_limit,Indicates whether the reported loan amount exceeds the GSE (government sponsored enterprise) conforming loan limit,Categorical,"C (Conforming), NC (Nonconforming), U (Undetermined), NA (Not Applicable)"
 10,derived_ethnicity,Single aggregated ethnicity categorization derived from applicant/borrower and co-applicant/co-borrower ethnicity fields,Categorical,"Hispanic or Latino, Not Hispanic or Latino, Joint, Ethnicity Not Available, Free Form Text Only"
@@ -13,7 +13,7 @@ mapping_id,filed_name,description,data_type,values
 12,derived_sex,Single aggregated sex categorization derived from applicant/borrower and co-applicant/co-borrower sex fields,Categorical,"Male, Female, Joint, Sex Not Available"
 13,action_taken,The action taken on the covered loan or application,Alphanumeric,"1- Loan originated, 2- Application approved but not accepted, 3- Application denied, 4- Application withdrawn by applicant, 5- File closed for incompleteness, 6- Purchased loan, 7- Preapproval request denied, 8 - Preapproval request approved but not accepted"
 14,purchaser_type,Type of entity purchasing a covered loan from the institution,Alphanumeric,"0- Not applicable, 1- Fannie Mae, 2- Ginnie Mae, 3- Freddie Mac, 4- Farmer Mac, 5- Private securitizer, 6- Commercial bank, savings bank, or savings association, 71- Credit union, mortgage company, or finance company, 72- Life insurance company, 8- Affiliate institution, 9- Other type of purchaser"
-15,preapproval,Whether the covered loan or application involved a request for a preapproval of a home purchase loan under a preapproval program,Alphanumeric,"1- Preapproval requested, 2- Preapproval not requested"
+15,preapproval,Whether the covered loan or application involved a request for a preapproval of a home purchase loan under a preapproval program,Alphanumeric,"1'- Preapproval requested, 2- Preapproval not requested"
 16,loan_type,The type of covered loan or application,Alphanumeric,"1 - Conventional (not insured or guaranteed by FHA, VA, RHS, or FSA), 2 - Federal Housing Administration insured (FHA), 3- Veterans Affairs guaranteed (VA), 4- USDA Rural Housing Service or Farm Service Agency guaranteed (RHS or FSA)"
 17,loan_purpose,The purpose of covered loan or application,Alphanumeric,"1- Home purchase, 2- Home improvement, 31- Refinancing, 32- Cash-out refinancing, 4 - Other purpose, 5- Not applicable [cite: 65]"
 18,lien_status,"Lien status of the property securing the covered loan, or in the case of an application, proposed to secure the covered loan",Alphanumeric,"1- Secured by a first lien, 2- Secured by a subordinate lien"

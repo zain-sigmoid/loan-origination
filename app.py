@@ -1,6 +1,5 @@
 import streamlit as st
-import streamlit as st
-from chat_page import show_agentic_chat_interface
+import traceback
 
 # Set page configuration
 st.set_page_config(
@@ -16,10 +15,12 @@ if "data_loaded" not in st.session_state:
 # show_agentic_chat_interface()
 # 🚀 Directly run the main chat interface
 try:
+    from chat_page import show_agentic_chat_interface
+
     show_agentic_chat_interface()
 except Exception as e:
     print(f"Error in chat interface: {e}")
+    traceback.print_exc()
     st.error(
-        "⚠️ An unexpected error occurred. Please try again. If issue persist, try clearing the Chat"
+        "⚠️ Oops! Something went wrong. Please try your request again. If the issue continues, try refreshing or clearing the chat to reset things."
     )
-    # st.expander("Error Details").markdown(f"```{str(e)}```")
