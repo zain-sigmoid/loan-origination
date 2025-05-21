@@ -80,22 +80,27 @@ prompts:
     3. Assign final result to `output_df` (as DataFrame or Series).
     4. Ensure your logic uses only the columns listed in <data_description>.
 
-    If the user asks to “describe the dataset” or “give an overview”:
-    - Provide a paragraph summary using actual column names (like `loan_amount`, `loan_purpose`, `action_taken`, etc.).
-    - Include a sample of 10 rows (`df.head(10)`) as output.
-    - Then show:
-      - Total number of rows/columns
-      - Time period (from a column like `activity_year`)
-      - Top loan purposes (with percentage)
-      - Loan types distribution
-      - Approval vs. denial rate
-      - Summary stats for income and loan amount
+    If the user asks to “describe the dataset” or “give an overview”, respond in a clear, business-friendly way:
 
-    Avoid returning:
-    - All column names
-    - All rows or raw `.describe()` output
-    - Speculative text like "may suggest", "might indicate", etc.
+    Start with a short paragraph explaining what kind of data this is and what it captures. Start with this sentence "This dataset is derived from Home Mortgage Disclosure Act (HMDA) filings, providing comprehensive insights into residential mortgage applications and lending decisions...". 
+    Mention key themes like loans, applicants, approval status etc.
+    Highlight a few important columns in simple terms (e.g., “loan amount”, “purpose of the loan”, “approval status”, “applicant income”, “applicant ethnicity“, “applicant race").
 
+    Then summarize:
+     1. Total number of records and columns.
+     2. Time period covered in the data (from the activity_year column).
+     3. Most common loan purposes (just top few with %).
+     4. Loan types (basic breakdown).
+     5. Count of approved vs. denied loans.
+
+    Avoid:
+
+      1. A preview sample (first 10 rows using df.head(10)) to give a feel of the data.
+      2. Listing every column or giving technical column names without explanation
+      3. Raw statistics like mean/std or .describe() outputs
+      4. Speculative statements like "may suggest", "could indicate", etc.
+
+    The tone should be helpful, clear, and easy to understand for business users who may not have technical backgrounds.
     </approach>
 
     Next, write fully executable Python code inside <code> tags:
@@ -427,59 +432,30 @@ prompts:
     """
     
   Formatting_Prompt: |
-    You are a formatting assistant responsible for taking a raw analytical response and transforming it into a clean, well-structured, and business-friendly output. The input will be a dictionary containing the following keys:
+    You are a formatting-aware assistant that corrects LLM answers based on a table.
 
-    - `approach`: A short explanation of the methodology used
-    - `answer`: A natural language summary of the findings
-    - `code`: Python code used to perform the analysis
-    - `chart_code`: Python code used to generate any charts
-    - `table`: The computed DataFrame (output_df) in previewable tabular output
-    - `figure`: the plot path which is used to show plot on UI
+    ### Original Answer:
+    {original_answer}
 
-    Your job is to clean and enhance the following Python dictionary which represents a BI analysis result for a business user without changing its meaning.. 
-    Follow these formatting guidelines strictly:
-    ---
+    ### Table Data:
+    {table_data}
 
-    **Formatting Guidelines**
+    ### Instructions:
+    1. If the original answer is vague or says things like "see the chart", "in the table", "The output_df shows" or references a table like "`output_df`" rewrite it clearly using the table.
+    2. Fix formatting issues:
+      - All numeric values should use US-style formatting, with commas as thousand separators.
+        - Example: 132468 → 132,468
+      - Round currency values to nearest thousand or million where applicable.
+      - If the value represents dollar amounts, prepend with $ and abbreviate large values:
+        - Example: 
+          - $253620000 → $253.62M
+          - $189632 → $189.63K (use “K” for values below 1 million)
+          - Always round to two decimal places when converting to K or M
+      - Avoid scientific notation in outputs.
+      - When providing percentages, round to two decimal places and include 
+        - Example: 0.5051 → 50.51%
+      - Remove or correct awkward line breaks around symbols (like `\\n$253.62M` → `$253.62M`).
+    3. Do not remove or change Markdown formatting like `**bold**`, `*italic*`, or symbols.
+      - Just ensure they will render correctly in `st.markdown()`
 
-    1. **Numeric Formatting**
-      - Use US-style number formatting with commas:  
-        - 132468 → 132,468
-      - If a value represents currency (e.g., loan amount, income):
-        - Convert large values to human-readable units:
-          - $253620000 → **$253.62M**
-          - $189632 → **$189.63K**
-        - Round to two decimal places.
-        - Always prefix currency with `$`.
-
-    2. **Percentages**
-      - Round percentages to two decimal places.
-        - 0.5051 → **50.51%**
-      - Always include the `%` sign.
-
-    3. **Scientific Notation**
-      - Avoid it entirely. Convert numbers to standard format.
-
-    4. **Tables**
-      - Format all numbers in the table according to the above rules.
-      - Ensure headers are user-friendly (rename if necessary).
-      - convert dataframe table into dictionary
-
-    5. **Text Polishing**
-      - Do NOT significantly reword or alter the tone of the existing `answer` or `approach` text.
-      - Preserve original phrases and sentence structures unless there are clear grammar or clarity issues.
-      - Enhance the explanation by **extending or adding brief context** based on values in the `table` (e.g., adding an example or noting a pattern).
-      - Use bullet points, bolding, and icons like ✓ or ✗ to highlight the most important points.
-      - If helpful, add 1–2 summary observations from the table (e.g., “The highest approval rate was seen in ...” or “Loan amounts ranged from $X to $Y.”).
-      - Do not add speculation or interpretations not grounded in the table.
-
-    ---
-
-    Use real line breaks (`\n`) between bullet points. Do not combine all bullets into a single line.
-    Now return the same dictionary with all fields cleaned, using valid Python dict syntax:
-    Input:
-    {response_dict}
-
-    Output:
-
-    Return only the formatted version.
+    Return only the improved answer as a clean, display-ready Markdown string. Use Bullet points and its formatting correctly so that it can be displayed in markdown streamlit UI.
