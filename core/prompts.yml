@@ -454,7 +454,17 @@ prompts:
       - Avoid scientific notation in outputs.
       - When providing percentages, round to two decimal places and include 
         - Example: 0.5051 → 50.51%
-      - Remove or correct awkward line breaks around symbols (like `\\n$253.62M` → `$253.62M`).
+      - When using Markdown formatting:
+        - Use proper indentation for nested bullet points.
+            - Use `*` for top-level bullets.
+            - For nested bullets, indent with four spaces and use `*` again.
+        - Do not insert blank lines between nested bullet points.
+        - Ensure the output renders correctly in Streamlit using `st.markdown()`.
+
+        Example of correct structure:
+        * Loan purposes:
+            * Home purchase at 40.25%
+            * Refinance at 30.12%
     3. Do not remove or change Markdown formatting like `**bold**`, `*italic*`, or symbols.
       - Just ensure they will render correctly in `st.markdown()`
 
