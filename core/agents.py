@@ -172,7 +172,7 @@ class BI_Agent:
             )
         )
 
-    def generate_response(self, question, history=""):
+    def generate_response(self, question, history="", formatting=True):
         """
         Generate a final response from the agent.
 
@@ -188,21 +188,32 @@ class BI_Agent:
         response = self.helper_functions["execute_analysis"].invoke(
             {"df": self.dataset, "response_text": llm_response.content}
         )
-        return response
-        # if response.get("error"):
-        #     # here we can call llm when there is error, else we can format as of now returning response
-        #     return response
-        # else:
-        #     print(colored("formatting", "cyan"))
-        #     formatting_prompt = self.prompt_s["prompts"]["Formatting_Prompt"]
-        #     formatted_response = Formatting.format_response(
-        #         prompt=formatting_prompt, response=response, llm=self.llm
-        #     )
-        #     return formatted_response
+        if (
+            not response.get("error")
+            and response.get("answer", "").strip()
+            and formatting == True
+        ):
+            print(colored("formatting", "light_green"))
+            formatting_prompt = self.prompt_s["prompts"]["Formatting_Prompt"]
 
-    #
-    # else:
-    #     return llm_response.content
+            formatted_answer = Formatting.format_response(
+                prompt=formatting_prompt,
+                answer=response.get("answer", ""),
+                llm=self.llm,
+                table=response.get("table", ""),
+            )
+
+            print(f"before answer \n{response['answer']}")
+            print(f"after answer \n{formatted_answer}")
+
+            # Update answer only if formatting returned something
+            response["answer"] = (
+                formatted_answer.strip()
+                if formatted_answer.strip()
+                else response["answer"]
+            )
+
+        return response
 
     def __repr__(self):
         """
@@ -217,14 +228,14 @@ class BI_Agent:
 
 class FairLendingAgent:
     def __init__(self, llm, tools, dataset, data_description, helper_functions=None):
-        prompt_s = Utility.load_prompts()
+        self.prompt_s = Utility.load_prompts()
         self.llm = llm
         self.agent_name = "Fair Lending Compliance Agent"
         self.dataset = dataset
         self.tools = tools or []
         self.data_description = data_description
         self.helper_functions = helper_functions or {}
-        self.prompt = prompt_s["prompts"]["Fair_Lending_Compliance_Agent"]
+        self.prompt = self.prompt_s["prompts"]["Fair_Lending_Compliance_Agent"]
 
     def add_helper_function(self, name, func):
         self.helper_functions[name] = func
@@ -250,7 +261,7 @@ class FairLendingAgent:
             )
         )
 
-    def generate_response(self, question, history=""):
+    def generate_response(self, question, history="", formatting=True):
         result = self.run(question, history)
         content = result.content
 
@@ -269,9 +280,31 @@ class FairLendingAgent:
             return result
         else:
             # Execute analysis if applicable
-            return self.helper_functions["execute_analysis"].invoke(
+            response = self.helper_functions["execute_analysis"].invoke(
                 {"df": self.dataset, "response_text": content}
             )
+            if (
+                not response.get("error")
+                and response.get("answer", "").strip()
+                and formatting == True
+            ):
+                print(colored("formatting", "light_green"))
+                formatting_prompt = self.prompt_s["prompts"]["Formatting_Prompt"]
+
+                formatted_answer = Formatting.format_response(
+                    prompt=formatting_prompt,
+                    answer=response.get("answer", ""),
+                    llm=self.llm,
+                    table=response.get("table", ""),
+                )
+
+                # Update answer only if formatting returned something
+                response["answer"] = (
+                    formatted_answer.strip()
+                    if formatted_answer.strip()
+                    else response["answer"]
+                )
+            return response
 
     def __repr__(self):
         return (
@@ -283,11 +316,11 @@ class FairLendingAgent:
 
 class RiskEvaluationAgent:
     def __init__(self, llm, dataset, data_description, helper_functions=None):
-        prompt_s = Utility.load_prompts()
+        self.prompt_s = Utility.load_prompts()
         self.llm = llm
         self.agent_name = "Risk and Cost Evaluation Agent"
         self.dataset = dataset
-        self.prompt = prompt_s["prompts"]["Risk_Evaluation_Agent"]
+        self.prompt = self.prompt_s["prompts"]["Risk_Evaluation_Agent"]
         self.helper_functions = helper_functions or {}
         self.data_description = data_description
 
@@ -315,11 +348,35 @@ class RiskEvaluationAgent:
             )
         )
 
-    def generate_response(self, question, history=""):
+    def generate_response(self, question, history="", formatting=True):
         result = self.run(question, history)
         response = self.helper_functions["execute_analysis"].invoke(
             {"df": self.dataset, "response_text": result.content}
         )
+        if (
+            not response.get("error")
+            and response.get("answer", "").strip()
+            and formatting == True
+        ):
+            print(colored("formatting", "light_green"))
+            formatting_prompt = self.prompt_s["prompts"]["Formatting_Prompt"]
+
+            formatted_answer = Formatting.format_response(
+                prompt=formatting_prompt,
+                answer=response.get("answer", ""),
+                llm=self.llm,
+                table=response.get("table", ""),
+            )
+
+            print(f"before answer \n{response['answer']}")
+            print(f"after answer \n{formatted_answer}")
+
+            # Update answer only if formatting returned something
+            response["answer"] = (
+                formatted_answer.strip()
+                if formatted_answer.strip()
+                else response["answer"]
+            )
         return response
 
     def __repr__(self):
@@ -332,11 +389,11 @@ class RiskEvaluationAgent:
 
 class ScenarioSimulationAgent:
     def __init__(self, llm, dataset, data_description, helper_functions=None):
-        prompt_s = Utility.load_prompts()
+        self.prompt_s = Utility.load_prompts()
         self.llm = llm
         self.agent_name = "Scenario Simulation Agent"
         self.dataset = dataset
-        self.prompt = prompt_s["prompts"]["General_Scenario_Agent"]
+        self.prompt = self.prompt_s["prompts"]["General_Scenario_Agent"]
         self.data_description = data_description
         self.helper_functions = helper_functions or {}
 
@@ -364,11 +421,35 @@ class ScenarioSimulationAgent:
             )
         )
 
-    def generate_response(self, question, history=""):
+    def generate_response(self, question, history="", formatting=True):
         result = self.run(question, history)
         response = self.helper_functions["execute_analysis"].invoke(
             {"df": self.dataset, "response_text": result.content}
         )
+        if (
+            not response.get("error")
+            and response.get("answer", "").strip()
+            and formatting == True
+        ):
+            print(colored("formatting", "light_green"))
+            formatting_prompt = self.prompt_s["prompts"]["Formatting_Prompt"]
+
+            formatted_answer = Formatting.format_response(
+                prompt=formatting_prompt,
+                answer=response.get("answer", ""),
+                llm=self.llm,
+                table=response.get("table", ""),
+            )
+
+            print(f"before answer \n{response['answer']}")
+            print(f"after answer \n{formatted_answer}")
+
+            # Update answer only if formatting returned something
+            response["answer"] = (
+                formatted_answer.strip()
+                if formatted_answer.strip()
+                else response["answer"]
+            )
         return response
 
     def __repr__(self):
@@ -414,5 +495,5 @@ class OutOfDomainAgent:
                 print(f"Error in search: {e}")
                 search_result = "This question is out of domain. Please ask a question related to mortgage data analysis. I am unable results at this time."
             return AIMessage(content=search_result)
-        else:
-            return response
+
+        return response

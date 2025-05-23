@@ -7,10 +7,12 @@ import pandas as pd
 import uuid
 import time
 import html
+import markdown
 from termcolor import colored
+from core.utils import Tools
 
 # from main import main as experimental_agent_main
-from experimental_agent.app import main as experimental_agent_main
+# from experimental_agent.app import main as experimental_agent_main
 
 
 def format_user_bubble(query, timestamp):
@@ -63,13 +65,16 @@ def format_user_bubble(query, timestamp):
 
 
 def format_assistant_bubble(answer, timestamp, chart_key=None):
-    return f"""
+    html_answer = markdown.markdown(answer, extensions=["fenced_code", "tables"])
+
+    content = f"""
     <div style="display: flex; justify-content: flex-start; margin-left:12%;">
         <div style="padding:10px;border-radius:10px;margin-bottom:5px;max-width:88%;align-self:flex-start;">
-            <p style="margin:0;color: var(--text-color);">{answer}</p>
+            {html_answer}
         </div>
     </div>
     """
+    return content
 
 
 def format_assistant_bubble_typewrite(answer: str, typewriter: bool = False):
@@ -88,7 +93,9 @@ def format_assistant_bubble_typewrite(answer: str, typewriter: bool = False):
         </div>
     </div>
     """
-
+    # html_answer = markdown2.markdown(answer)
+    # st.write(html_answer)
+    # st.markdown(html_answer, unsafe_allow_html=True)
     if typewriter:
         current = ""
         for char in answer:
@@ -98,8 +105,52 @@ def format_assistant_bubble_typewrite(answer: str, typewriter: bool = False):
                 unsafe_allow_html=True,
             )
             time.sleep(0.007)
+        # container.markdown(current, unsafe_allow_html=False)
     else:
         container.markdown(bubble_start + answer + bubble_end, unsafe_allow_html=True)
+
+
+def format_assistant_bubble_typewrite_two(answer: str, typewriter: bool = False):
+    """
+    Displays a left-aligned bubble with markdown-formatted assistant response.
+    If typewriter=True, shows animated typing effect.
+    """
+    container = st.empty()
+
+    bubble_template = """
+    <div style="display: flex; justify-content: flex-start; margin-left:12%;">
+        <div style="color: var(--text-color);padding: 5px; border-radius: 10px;
+                    margin-bottom: 5px; max-width: 88%; align-self: flex-start;">
+            {content}
+        </div>
+    </div>
+    """
+
+    def render_markdown_as_html(text: str) -> str:
+
+        return markdown.markdown(
+            text,
+            extensions=[
+                "markdown.extensions.fenced_code",
+                "markdown.extensions.tables",
+                "markdown.extensions.nl2br",
+            ],
+        )
+
+    if typewriter:
+        current = ""
+        for char in answer:
+            current += char
+            html_answer = render_markdown_as_html(current)
+            container.markdown(
+                bubble_template.format(content=html_answer), unsafe_allow_html=True
+            )
+            time.sleep(0.007)
+    else:
+        html_answer = render_markdown_as_html(answer)
+        container.markdown(
+            bubble_template.format(content=html_answer), unsafe_allow_html=True
+        )
 
 
 def show_agentic_chat_interface():
@@ -124,6 +175,9 @@ def show_agentic_chat_interface():
 
     if "first_prompt" not in st.session_state:
         st.session_state.first_prompt = None
+
+    if "chat_var" not in st.session_state:
+        st.session_state.chat_var = 0
 
     col1, col2, col3, col4 = st.columns([1.5, 3.5, 1, 1.2])
     with col1:
@@ -178,13 +232,13 @@ def show_agentic_chat_interface():
             else "Origination Tool"
         )
         if st.button(toggle_label, key="toggle_button"):
-            st.session_state.show_experimental = not st.session_state.show_experimental
+            st.session_state.show_experimental = st.session_state.show_experimental
             st.rerun()
 
     # If experimental agent is toggled, show the experimental agent interface
-    if st.session_state.show_experimental:
-        experimental_agent_main()
-        return
+    # if st.session_state.show_experimental:
+    #     experimental_agent_main()
+    #     return
 
     # st.markdown("---")
     if st.session_state.get("reset_successful"):
@@ -271,8 +325,7 @@ def show_agentic_chat_interface():
                     and isinstance(table, pd.DataFrame)
                     and not table.empty
                 ):
-                    chart_key_safe = chart_key or str(uuid.uuid4())
-                    table_toggle_key = f"show_table_{chart_key_safe}"
+                    table_toggle_key = f"show_table_{chart_key}"
                     # table_toggle_key = f"show_table_{chart_key}"
                     show_table = st.toggle("🧾 Show Table", key=table_toggle_key)
                     if show_table:
@@ -360,33 +413,21 @@ def show_agentic_chat_interface():
                 if agent_response and not shown_agent_response:
                     shown_agent_response = True
                     answer = agent_response.get("answer", "")
+                    if not answer.strip():
+                        answer = (
+                            "Unable to generate answer, please ask the question again"
+                        )
                     chart_path = agent_response.get("figure")
                     table = agent_response.get("table")
                     # st.write(agent_response)
-                    # if agent_response.get("error"):
-                    #     st.markdown(
-                    #         """
-                    #         <style>
-                    #             .stError {
-                    #                 width: 100%;
-                    #                 max-width: 950px;
-                    #                 margin: 0 auto;
-                    #             }
-                    #         </style>
-                    #     """,
-                    #         unsafe_allow_html=True,
-                    #     )
-                    #     st.error(f"{agent_response.get('answer')}")
-                    #     break
 
                     if table is not None and isinstance(table, dict):
                         table = pd.DataFrame.from_dict(table)
 
-                    chart_key = (
-                        f"chart_{len(st.session_state.chat_log)}"
-                        if chart_path
-                        else None
-                    )
+                    chart_key = f"response_{st.session_state.chat_var}"
+                    toggle_key = f"show_chart_{chart_key}"
+                    table_toggle_key = f"show_table_{chart_key}"
+
                     assistant_html = format_assistant_bubble(
                         answer, timestamp, chart_key
                     )
@@ -399,14 +440,17 @@ def show_agentic_chat_interface():
                             "table": table,
                         }
                     )
+                    st.session_state.chat_var += 1
                     # print("formatting response")
-                    format_assistant_bubble_typewrite(answer, typewriter=True)
-
+                    format_assistant_bubble_typewrite_two(
+                        answer,
+                        typewriter=True,
+                    )
                     col1, col2, col3 = st.columns([1, 3, 4])
-                    # print(" chart")
+                    # st.write(chart_key)
                     with col2:
                         if chart_path and chart_key:
-                            toggle_key = f"show_chart_{chart_key}"
+                            # toggle_key = f"show_chart_{toggle_key}"
                             if toggle_key not in st.session_state:
                                 st.session_state[toggle_key] = False
                             if st.toggle(
@@ -434,7 +478,7 @@ def show_agentic_chat_interface():
                             and isinstance(table, pd.DataFrame)
                             and not table.empty
                         ):
-                            table_toggle_key = f"show_table_{chart_key}"
+                            # table_toggle_key = f"show_table_{chart_key}"
                             if table_toggle_key not in st.session_state:
                                 st.session_state[table_toggle_key] = False
                             if st.toggle(

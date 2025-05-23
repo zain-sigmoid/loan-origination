@@ -128,22 +128,50 @@ class Tools:
 
 
 class Formatting:
-    def format_response(prompt, response, llm):
+    @staticmethod
+    def format_response(prompt, answer, table, llm):
         try:
             FORMATTER_PROMPT = PromptTemplate.from_template(prompt)
             formatted_response = llm.invoke(
-                FORMATTER_PROMPT.format(response_dict=response)
+                FORMATTER_PROMPT.format(original_answer=answer, table_data=table)
             )
-            respons = formatted_response.content
-            cleaned = re.sub(r"^```(?:python)?\s*", "", respons.strip())
-            cleaned = re.sub(r"```$", "", cleaned.strip())
 
-            # Safely evaluate to a dictionary
-            ans = ast.literal_eval(cleaned)
-            return ans
+            respons = formatted_response.content
+            # cleaned = re.sub(r"^```(?:python)?\s*", "", respons.strip())
+            # cleaned = re.sub(r"```$", "", cleaned.strip())
+
+            # # Safely evaluate to a dictionary
+            # ans = ast.literal_eval(cleaned)
+            # respons = Formatting.insert_newlines_for_markdown(respons)
+            return respons
         except Exception as e:
-            print(str(e))
-            return response
+            print(colored(f"Exception in formatting: {str(e)}", "light_yellow"))
+            return answer
+
+    @staticmethod
+    def normalize_markdown(text: str) -> str:
+        # Ensure there's exactly one line break before checkmarks (✓), dashes (-), asterisks (*)
+        text = re.sub(r"\n*([✓*-])", r"\n\1", text)
+
+        # Remove double/triple newlines
+        text = re.sub(r"\n{3,}", "\n\n", text)
+
+        # Trim leading/trailing newlines
+        text = text.strip()
+
+        return text
+
+    def insert_newlines_for_markdown(text: str) -> str:
+        # Add newline before ✓ or ✗ if not already on a new line
+        text = re.sub(r"(?<!\n)([✓✗])", r"\n\1", text)
+
+        # Add newline before asterisks for markdown bullets or emphasis (but not mid-word italics)
+        text = re.sub(r"(?<!\n)(\*{1,2})(?=\s)", r"\n\1", text)
+
+        # Remove accidental multiple newlines
+        text = re.sub(r"\n{3,}", "\n\n", text)
+
+        return text.strip()
 
 
 @tool

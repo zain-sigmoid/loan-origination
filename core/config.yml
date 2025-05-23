@@ -66,4 +66,4 @@ cols_to_string:
 - denial_reason-4
 
 llm:
-  max_retry: 3
+  max_retry: 2
